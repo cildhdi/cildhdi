@@ -27,13 +27,14 @@ FileName: String.h
 #define DECLARE_STRING_ERROR(name) DECLARE_ERROR(name, StringError)
 #define nonconst
 #define THROW_STD_EXCEPT throw(std::exception)
+
 #ifdef _MSC_VER
 #define INLINE __forceinline
 #else
 #define INLINE __attribute__((always_inline)) inline
 #endif // _MSC_VER
 
-namespace miles
+namespace cildhdi
 {
 	namespace errors
 	{
@@ -43,13 +44,14 @@ namespace miles
 		private:
 			const char* const _what_error;
 		public:
-			explicit StringError(char const* const msg)noexcept : _what_error(msg) {};
+			explicit StringError(const char* msg)noexcept : _what_error(msg) {};
 			StringError()noexcept : _what_error("StringError") {}
 		};
 		DECLARE_STRING_ERROR(OutOfRange);
 		DECLARE_STRING_ERROR(NullPtr);
 		DECLARE_STRING_ERROR(NotCharOrWChar);
 		DECLARE_STRING_ERROR(DifferentObj);
+		DECLARE_STRING_ERROR(UnsupportedType);
 
 	} //namespace errors
 
@@ -125,6 +127,163 @@ namespace miles
 		{
 			return std::wcsstr(str, target);
 		}
+
+		template<typename Char>
+		class part_specialization_vtos
+		{
+		public:
+			template<typename V>
+			static int vtos(Char* buffer, size_t size, const Char* format, V& value)
+			{
+				helpers::expect<errors::UnsupportedType>(false);
+				return 0;
+			}
+		};
+
+		template<>
+		class part_specialization_vtos<char>
+		{
+		public:
+			template<typename V>
+			static int vtos(char* buffer, size_t size, const char* format, V& value)
+			{
+				return std::snprintf(buffer, size, format, value);
+			}
+		};
+
+		template<>
+		class part_specialization_vtos<wchar_t>
+		{
+		public:
+			template<typename V>
+			static int vtos(wchar_t* buffer, size_t size, const wchar_t* format, V& value)
+			{
+				return std::swprintf(buffer, size, format, value);
+			}
+		};
+
+
+		template<typename V>
+		class part_specialization_fmt
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				helpers::expect<errors::UnsupportedType>(false);
+				return format;
+			}
+		};
+
+		template<>
+		class part_specialization_fmt<char>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'c';
+				return format;
+			}
+		};
+
+		template<>
+		class part_specialization_fmt<int>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'd';
+				return format;
+			}
+		};
+
+		template<>
+		class part_specialization_fmt<long>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'l'; format[2] = 'd';
+				return format;
+			}
+		};
+
+		template<>
+		class part_specialization_fmt<long long>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'l'; format[2] = 'l'; format[3] = 'd';
+				return format;
+			}
+		};
+
+		template<>
+		class part_specialization_fmt<unsigned int>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'u';
+				return format;
+			}
+		};
+
+		template<>
+		class part_specialization_fmt< unsigned long>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'l'; format[2] = 'u';
+				return format;
+			}
+		};
+
+		template<>
+		class part_specialization_fmt<unsigned long long>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'l'; format[2] = 'l'; format[3] = 'u';
+				return format;
+			}
+		};
+
+		template<>
+		class part_specialization_fmt<double>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'l'; format[2] = 'f';
+				return format;
+			}
+		};
+
+
+		template<>
+		class part_specialization_fmt<long double>
+		{
+		public:
+			template<typename Char>
+			static Char* get_format(Char* format)
+			{
+				format[0] = '%'; format[1] = 'L'; format[2] = 'f';
+				return format;
+			}
+		};
+
 	} //helpers
 
 	template<typename Char> class StringBase;
@@ -276,21 +435,21 @@ namespace miles
 
 			}
 
-			void _range_check(typename IteratorBase::difference_type d)const THROW_STD_EXCEPT
+			INLINE void _range_check(typename IteratorBase::difference_type d)const THROW_STD_EXCEPT
 			{
 				_nullptr_check();
 				typename IteratorBase::difference_type rd = std::distance(_obj->_data.get(), _position + d);
 				helpers::expect<errors::OutOfRange>(rd >= 0 && rd <= static_cast<typename IteratorBase::difference_type>(_obj->size()));
 			}
 
-			void _dif_obj_check(const IteratorBase& rhs)const THROW_STD_EXCEPT
+			INLINE void _dif_obj_check(const IteratorBase& rhs)const THROW_STD_EXCEPT
 			{
 				_nullptr_check();
 				rhs._nullptr_check();
 				helpers::expect<errors::DifferentObj>(_obj == rhs._obj);
 			}
 
-			void _nullptr_check() const THROW_STD_EXCEPT
+			INLINE void _nullptr_check() const THROW_STD_EXCEPT
 			{
 				helpers::expect<errors::NullPtr>(_obj != nullptr && _position != nullptr);
 			}
@@ -315,33 +474,48 @@ namespace miles
 		using CharType = Char;
 		using CharReference = Char & ;
 		using CharPtrType = Char * ;
+		using ConstCharPtr = const Char*;
 		using CharSharedPtrType = std::shared_ptr<Char>;
 		using Iterator = iterators::IteratorBase<CharType>;
 		friend class iterators::IteratorBase<CharType>;
 	public: //Constructors
 		StringBase() THROW_STD_EXCEPT
 		{
-			helpers::expect<errors::NotCharOrWChar>(std::is_same<CharType, char>::value || std::is_same<CharType, wchar_t>::value);
 			reset();
+		}
+
+		template<typename V, typename = std::enable_if_t<std::is_arithmetic<V>::value>>
+		StringBase(V value) THROW_STD_EXCEPT
+		{
+			reset();
+			CharType format[5] = { 0 };
+			CharType buffer[50] = { 0 };
+			helpers::part_specialization_vtos<CharType>::vtos(buffer, 50, helpers::part_specialization_fmt<V>::get_format(format), value);
+			_size = helpers::strlen(buffer);
+			if (_size == 0)
+				return;
+			_capacity = _size;
+			_data = helpers::get_copy_str<CharType>(buffer, _size, false);
 		}
 
 		StringBase(const StringBase& other) THROW_STD_EXCEPT
 		{
-			StringBase();
+			reset();
 			_data = other._data;
 			_size = other._size;
 			_capacity = other._capacity;
+			_cur_arg_index = other._cur_arg_index;
 		}
 
 		StringBase(StringBase&& other) THROW_STD_EXCEPT
 		{
-			StringBase();
+			reset();
 			swap(other);
 		}
 
-		StringBase(const CharType* str, size_t count = npos) THROW_STD_EXCEPT
+		StringBase(const CharType* str, size_t count) THROW_STD_EXCEPT
 		{
-			StringBase();
+			reset();
 			_size = (count == npos ? helpers::strlen(str) : count);
 			if (_size == 0)
 			{
@@ -351,6 +525,17 @@ namespace miles
 			_data = helpers::get_copy_str<CharType>(str, _size, false);
 		}
 
+		StringBase(const CharType* str) THROW_STD_EXCEPT
+		{
+			reset();
+			_size = helpers::strlen(str);
+			if (_size == 0)
+			{
+				return;
+			}
+			_capacity = _size;
+			_data = helpers::get_copy_str<CharType>(str, _size, false);
+		}
 	public: //Element access
 		CharType at(size_t index) const THROW_STD_EXCEPT
 		{
@@ -389,22 +574,16 @@ namespace miles
 		Iterator begin() nonconst
 		{
 			_call_non_const_func();
-			Iterator it(this, _data.get());
-			return it;
+			return Iterator(this, _data.get());
 		}
 
 		Iterator end() nonconst
 		{
 			_call_non_const_func();
 			if (_size == 0)
-			{
 				return begin();
-			}
 			else
-			{
-				Iterator it(this, (static_cast<CharPtrType>(_data.get()) + _size));
-				return it;
-			}
+				return Iterator(this, (static_cast<CharPtrType>(_data.get()) + _size));
 		}
 
 	public: //Capacity
@@ -447,6 +626,16 @@ namespace miles
 			}
 		}
 
+		void reserve(size_t size) nonconst THROW_STD_EXCEPT
+		{
+			//_call_non_const_func();
+			if (size > _capacity)
+			{
+				_data = helpers::get_copy_str(_data.get(), size, false);
+				_capacity = size;
+			}
+		}
+
 	public: //Operations
 		void reset() nonconst
 		{
@@ -454,6 +643,7 @@ namespace miles
 			_data = helpers::make_chars_shared_ptr<CharType>(nullptr);
 			_size = 0;
 			_capacity = 0;
+			_cur_arg_index = 1;
 		}
 
 		void clear() nonconst
@@ -466,7 +656,13 @@ namespace miles
 		{
 			if (count == 0) return *this;
 			_call_non_const_func();
-			resize(_size + count, ch);
+			size_t old = size();
+			reserve(_get_expand_size(count));
+			_size += count;
+			for (size_t i = 0; i < _size; i++)
+			{
+				at(i) = ch;
+			}
 			return *this;
 		}
 
@@ -475,7 +671,8 @@ namespace miles
 			if (str.empty()) return *this;
 			_call_non_const_func();
 			size_t old = size();
-			resize(_get_expand_size(str.size()));
+			reserve(_get_expand_size(str.size()));
+			_size += str.size();
 			helpers::copy_str(_data.get() + old, str._data.get(), str.size());
 			return *this;
 		}
@@ -487,7 +684,8 @@ namespace miles
 			helpers::expect<errors::OutOfRange>(pos < str.size());
 			size_t old = size();
 			if (count == npos) count = str.size() - pos;
-			resize(_get_expand_size(count));
+			reserve(_get_expand_size(count));
+			_size += count;
 			helpers::copy_str(_data.get() + old, str._data.get() + pos, count);
 			return *this;
 		}
@@ -537,6 +735,7 @@ namespace miles
 			other._call_non_const_func();
 			std::swap(_size, other._size);
 			std::swap(_capacity, other._capacity);
+			std::swap(_cur_arg_index, other._cur_arg_index);
 			_data.swap(other._data);
 		}
 
@@ -547,6 +746,36 @@ namespace miles
 			str.append(*this, pos, count);
 			return str;
 		}
+
+		template<typename V>
+		StringBase arg(V value) const THROW_STD_EXCEPT
+		{
+			int index = _cur_arg_index;
+			StringBase str;
+			CharType begin_c[3] = { '{', '%', '\0' };
+			CharType end_c[2] = { '}', '\0' };
+			StringBase fmt_begin(begin_c);
+			StringBase fmt_end(end_c);
+			size_t fmt_tag_begin, fmt_tag_end;
+			while (index < 100)
+			{
+				StringBase si = to_str(index);
+				str = fmt_begin + si + fmt_end;
+				fmt_tag_begin = find(str);
+				if (fmt_tag_begin != npos)
+				{
+					fmt_tag_end = fmt_tag_begin + str.size();
+					break;
+				}
+				index++;
+			}
+			if (index == 100) return *this;
+			str = StringBase(_data.get(), fmt_tag_begin) + to_str(value) + 
+				StringBase(_data.get() + fmt_tag_end, _size - fmt_tag_end);
+			str._cur_arg_index = index + 1;
+			return str;
+		}
+
 	public: //operators
 		CharReference operator[](size_t index) nonconst THROW_STD_EXCEPT
 		{
@@ -559,15 +788,24 @@ namespace miles
 		{
 			_call_non_const_func();
 			append(str);
+			return *this;
 		}
 
 		StringBase& operator+=(CharType ch) nonconst THROW_STD_EXCEPT
 		{
 			_call_non_const_func();
 			append(ch);
+			return *this;
 		}
 
-
+		StringBase& operator=(const StringBase& other) nonconst THROW_STD_EXCEPT
+		{
+			reset();
+			_data = other._data;
+			_size = other._size;
+			_capacity = other._capacity;
+			return *this;
+		}
 
 	public: //Search
 		size_t find(const StringBase& str, size_t pos = 0) const
@@ -592,6 +830,37 @@ namespace miles
 				return res - s.get();
 		}
 
+		size_t find_first_of(const StringBase& str, size_t pos = 0)const THROW_STD_EXCEPT
+		{
+			auto it = std::find_first_of(begin() + pos, end(), str.begin(), str.end());
+			if (it == end())
+				return npos;
+			else
+				return std::distance(begin(), it);
+		}
+
+		size_t find_first_of(CharType ch, size_t pos = 0)const THROW_STD_EXCEPT
+		{
+			auto it = std::find(begin() + pos, end(), ch);
+			if (it == end())
+				return npos;
+			else
+				return std::distance(begin(), it);
+		}
+	public: //Statics
+		template<typename V>
+		static StringBase to_str(V value)
+		{
+			StringBase str(value);
+			return str;
+		}
+
+		template<>
+		static StringBase to_str<ConstCharPtr>(ConstCharPtr str)
+		{
+			StringBase s(str);
+			return s;
+		}
 	private:
 		inline void _call_non_const_func() nonconst THROW_STD_EXCEPT
 		{
@@ -613,7 +882,7 @@ namespace miles
 			return new_capacity;
 		}
 
-		inline void _range_check(int index) const THROW_STD_EXCEPT
+		INLINE void _range_check(int index) const THROW_STD_EXCEPT
 		{
 			helpers::expect<errors::OutOfRange>(index < static_cast<int>(_size) && index >= 0);
 		}
@@ -621,7 +890,9 @@ namespace miles
 		CharSharedPtrType _data;
 		size_t _size;
 		size_t _capacity;
+		size_t _cur_arg_index = 1;
 		const double _expand_proportion = 1.5;
+		static_assert(std::is_same<CharType, char>::value || std::is_same<CharType, wchar_t>::value, "unsupported type: Char.");
 	public:
 		static const size_t npos = static_cast<size_t>(-1);
 	};
@@ -634,9 +905,70 @@ namespace miles
 		return os;
 	}
 
+	template<typename Char>
+	StringBase<Char> operator+(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	{
+		auto res = lhs;
+		res.append(rhs);
+		return res;
+	}
+
+	template<typename Char>
+	StringBase<Char> operator+(const StringBase<Char>& lhs, Char rhs) THROW_STD_EXCEPT
+	{
+		auto res = lhs;
+		res.append(rhs);
+		return res;
+	}
+
+	template<typename Char>
+	StringBase<Char> operator+(Char lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	{
+		StringBase<Char> res;
+		res.append(lhs);
+		res.append(rhs);
+		return res;
+	}
+
+	template<typename Char>
+	bool operator==(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	{
+		return lhs.compare(rhs) == 0;
+	}
+
+	template<typename Char>
+	bool operator!=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	{
+		return !(lhs == rhs);
+	}
+
+	template<typename Char>
+	bool operator<(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	{
+		return lhs.compare(rhs) < 0;
+	}
+
+	template<typename Char>
+	bool operator<=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	{
+		return lhs.compare(rhs) <= 0;
+	}
+
+	template<typename Char>
+	bool operator>(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	{
+		return lhs.compare(rhs) > 0;
+	}
+
+	template<typename Char>
+	bool operator>=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	{
+		return lhs.compare(rhs) >= 0;
+	}
+
 	using String = StringBase<char>;
 	using WString = StringBase<wchar_t>;
 
-} //namespace miles
+} //namespace cildhdi
 
 #endif
