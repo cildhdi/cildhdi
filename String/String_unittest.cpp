@@ -314,11 +314,22 @@ namespace
 	TEST(String, ArgTest)
 	{
 		{
-			std::cout << cildhdi::String("{%1} is a {%2}, but {%3} is a {%4}").arg("he").arg("sb").arg("yl").arg("sg") << std::endl;
+			std::cout << cildhdi::String("{%5}:{%1} is a {%2}, but {%3} is a {%4}.").arg("he", "sb", "yl", "sg", 123) << std::endl;
+		}
+	}
+	using namespace cildhdi;
+	TEST(String, SplitTest)
+	{
+		{
+			WString str = L"A bird came down the walk";
+			auto vs = str.split(L" ");
+			for (auto& s : vs)
+			{
+				std::wcout << s << std::endl;
+			}
 		}
 	}
 } //namespace
-
 
 int main(int argc, char** argv)
 {

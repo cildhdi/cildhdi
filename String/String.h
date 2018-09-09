@@ -3,9 +3,18 @@ Developer: MilesYang
 Mail: 1961464399@qq.com
 FileName: String.h
 *********************************************************/
-
 #ifndef _YL_STRING_H_
 #define _YL_STRING_H_
+
+#ifdef _MSC_VER
+#define INLINE __forceinline
+#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_NON_CONFORMING_WCSTOK
+#pragma warning(disable:4290)
+#pragma warning(disable:4996)
+#else // g++
+#define INLINE __attribute__((always_inline)) inline
+#endif // _MSC_VER
 
 #include <exception>
 #include <stdexcept>
@@ -14,25 +23,21 @@ FileName: String.h
 #include <type_traits>
 #include <iterator>
 #include <iostream>
-
-#pragma warning(disable:4290)
+#include <cctype>
+#include <vector>
+#include <cwchar>
+#include <tuple>
 
 #define DECLARE_ERROR(error_name, base_class_name) \
 	class error_name :public base_class_name\
 	{\
 	public:\
-		explicit error_name(char const* const msg)noexcept :base_class_name(msg == nullptr ? #error_name : msg) {}\
+		explicit error_name(const char* msg)noexcept :base_class_name(msg == nullptr ? #error_name : msg) {}\
 		error_name()noexcept :StringError(#error_name) {}\
 	}
 #define DECLARE_STRING_ERROR(name) DECLARE_ERROR(name, StringError)
 #define nonconst
 #define THROW_STD_EXCEPT throw(std::exception)
-
-#ifdef _MSC_VER
-#define INLINE __forceinline
-#else
-#define INLINE __attribute__((always_inline)) inline
-#endif // _MSC_VER
 
 namespace cildhdi
 {
@@ -46,12 +51,17 @@ namespace cildhdi
 		public:
 			explicit StringError(const char* msg)noexcept : _what_error(msg) {};
 			StringError()noexcept : _what_error("StringError") {}
+			virtual const char* what() const noexcept
+			{
+				return _what_error;
+			}
 		};
 		DECLARE_STRING_ERROR(OutOfRange);
 		DECLARE_STRING_ERROR(NullPtr);
 		DECLARE_STRING_ERROR(NotCharOrWChar);
 		DECLARE_STRING_ERROR(DifferentObj);
 		DECLARE_STRING_ERROR(UnsupportedType);
+		DECLARE_STRING_ERROR(UnreachablePosition);
 
 	} //namespace errors
 
@@ -93,39 +103,60 @@ namespace cildhdi
 		}
 
 		template<typename Char>
-		INLINE size_t strlen(const Char* str)
+		INLINE size_t strlen_t(const Char* str)
 		{
+			helpers::expect<errors::UnreachablePosition>(false);
 			return 0;
 		}
 
 		template<>
-		INLINE size_t strlen<char>(const char* str)
+		INLINE size_t strlen_t<char>(const char* str)
 		{
 			return std::strlen(str);
 		}
 
 		template<>
-		INLINE size_t strlen<wchar_t>(const wchar_t* str)
+		INLINE size_t strlen_t<wchar_t>(const wchar_t* str)
 		{
 			return std::wcslen(str);
 		}
 
 		template<typename Char>
-		INLINE Char* strstr(Char* str, Char* target)
+		INLINE Char* strstr_t(Char* str, Char* target)
 		{
+			helpers::expect<errors::UnreachablePosition>(false);
 			return nullptr;
 		}
 
 		template<>
-		INLINE char* strstr<char>(char* str, char* target)
+		INLINE char* strstr_t<char>(char* str, char* target)
 		{
 			return std::strstr(str, target);
 		}
 
 		template<>
-		INLINE wchar_t* strstr<wchar_t>(wchar_t* str, wchar_t* target)
+		INLINE wchar_t* strstr_t<wchar_t>(wchar_t* str, wchar_t* target)
 		{
 			return std::wcsstr(str, target);
+		}
+
+		template<typename Char>
+		INLINE Char* strtok_t(Char* str, const Char* delim)
+		{
+			helpers::expect<errors::UnreachablePosition>(false);
+			return nullptr;
+		}
+
+		template<>
+		INLINE char* strtok_t<char>(char* str, const char* delim)
+		{
+			return std::strtok(str, delim);
+		}
+
+		template<>
+		INLINE wchar_t* strtok_t<wchar_t>(wchar_t* str, const wchar_t* delim)
+		{
+			return std::wcstok(str, delim);
 		}
 
 		template<typename Char>
@@ -135,7 +166,7 @@ namespace cildhdi
 			template<typename V>
 			static int vtos(Char* buffer, size_t size, const Char* format, V& value)
 			{
-				helpers::expect<errors::UnsupportedType>(false);
+				helpers::expect<errors::UnreachablePosition>(false);
 				return 0;
 			}
 		};
@@ -491,7 +522,7 @@ namespace cildhdi
 			CharType format[5] = { 0 };
 			CharType buffer[50] = { 0 };
 			helpers::part_specialization_vtos<CharType>::vtos(buffer, 50, helpers::part_specialization_fmt<V>::get_format(format), value);
-			_size = helpers::strlen(buffer);
+			_size = helpers::strlen_t(buffer);
 			if (_size == 0)
 				return;
 			_capacity = _size;
@@ -516,7 +547,7 @@ namespace cildhdi
 		StringBase(const CharType* str, size_t count) THROW_STD_EXCEPT
 		{
 			reset();
-			_size = (count == npos ? helpers::strlen(str) : count);
+			_size = (count == npos ? helpers::strlen_t(str) : count);
 			if (_size == 0)
 			{
 				return;
@@ -528,7 +559,7 @@ namespace cildhdi
 		StringBase(const CharType* str) THROW_STD_EXCEPT
 		{
 			reset();
-			_size = helpers::strlen(str);
+			_size = helpers::strlen_t(str);
 			if (_size == 0)
 			{
 				return;
@@ -628,7 +659,7 @@ namespace cildhdi
 
 		void reserve(size_t size) nonconst THROW_STD_EXCEPT
 		{
-			_call_non_const_func();
+			//_call_non_const_func();
 			if (size > _capacity)
 			{
 				_data = helpers::get_copy_str(_data.get(), size, false);
@@ -747,8 +778,59 @@ namespace cildhdi
 			return str;
 		}
 
-		template<typename V>
-		StringBase arg(V value) const THROW_STD_EXCEPT
+		std::vector<StringBase> split(const CharType* delim) const THROW_STD_EXCEPT
+		{
+			auto cstr = c_str();
+			CharPtrType token = helpers::strtok_t<CharType>(cstr.get(), delim);
+			std::vector<StringBase> res;
+			while (token != nullptr)
+			{
+				res.emplace_back(token);
+				token = helpers::strtok_t<CharType>(nullptr, delim);
+			}
+			return res;
+		}
+
+		StringBase left(size_t count) const THROW_STD_EXCEPT
+		{
+			_range_check(count - 1);
+			return StringBase(_data.get(), count);
+		}
+
+		StringBase right(size_t count) const THROW_STD_EXCEPT
+		{
+			_range_check(count - 1);
+			return StringBase(_data.get() + _size - count, count);
+		}
+
+		StringBase to_upper() const THROW_STD_EXCEPT
+		{
+			StringBase s(*this);
+			std::for_each(s.begin(), s.end(), [](char& c)
+			{
+				if (std::isalpha(c) && std::islower(c))
+				{
+					c -= ('a' - 'A');
+				}
+			});
+			return s;
+		}
+
+		StringBase to_lower() const THROW_STD_EXCEPT
+		{
+			StringBase s(*this);
+			std::for_each(s.begin(), s.end(), [](char& c)
+			{
+				if (std::isalpha(c) && std::isupper(c))
+				{
+					c += ('a' - 'A');
+				}
+			});
+			return s;
+		}
+
+		template<typename T>
+		StringBase arg(T value) const THROW_STD_EXCEPT
 		{
 			int index = _cur_arg_index;
 			StringBase str;
@@ -775,6 +857,12 @@ namespace cildhdi
 			str += StringBase(_data.get() + fmt_tag_end, _size - fmt_tag_end);
 			str._cur_arg_index = index + 1;
 			return str;
+		}
+
+		template<typename T, typename ...Types>
+		StringBase arg(T t, Types... args) const THROW_STD_EXCEPT
+		{
+			return arg<T>(t).arg<Types...>(args...);
 		}
 
 	public: //operators
@@ -813,7 +901,7 @@ namespace cildhdi
 		{
 			auto s = c_str();
 			auto t = str.c_str();
-			CharPtrType res = helpers::strstr<CharType>(s.get() + pos, t.get());
+			CharPtrType res = helpers::strstr_t<CharType>(s.get() + pos, t.get());
 			if (res == nullptr)
 				return npos;
 			else
@@ -824,7 +912,7 @@ namespace cildhdi
 		{
 			auto s = c_str();
 			auto t = StringBase(str, count).c_str();
-			CharPtrType res = helpers::strstr<CharType>(s.get() + pos, t.get());
+			CharPtrType res = helpers::strstr_t<CharType>(s.get() + pos, t.get());
 			if (res == nullptr)
 				return npos;
 			else
@@ -902,6 +990,16 @@ namespace cildhdi
 		for (size_t i = 0; i < s.size(); i++)
 			os << s.at(i);
 		return os;
+	}
+
+	template<typename Char>
+	std::basic_istream<Char>& operator>>(std::basic_istream<Char>& is, StringBase<Char>& s)
+	{
+		Char buffer[1000] = { 0 };
+		is >> buffer;
+		StringBase<Char> str(buffer);
+		s = str;
+		return is;
 	}
 
 	template<typename Char>
