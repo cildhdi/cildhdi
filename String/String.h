@@ -484,8 +484,8 @@ namespace cildhdi
 			reset();
 		}
 
-		template<typename V, typename = std::enable_if_t<std::is_arithmetic<V>::value>>
-		StringBase(V value) THROW_STD_EXCEPT
+		template<typename V>
+		StringBase(V value, typename std::enable_if<std::is_arithmetic<V>::value>::type* = 0) THROW_STD_EXCEPT
 		{
 			reset();
 			CharType format[5] = { 0 };
@@ -565,19 +565,19 @@ namespace cildhdi
 			return *(_data.get() + _size - 1);
 		}
 
-		CharSharedPtrType c_str() const
+		CharSharedPtrType c_str() const THROW_STD_EXCEPT
 		{
 			return helpers::get_copy_str(_data.get(), _size, true);
 		}
 
 	public: //Iterators
-		Iterator begin() nonconst
+		Iterator begin() nonconst THROW_STD_EXCEPT
 		{
 			_call_non_const_func();
 			return Iterator(this, _data.get());
 		}
 
-		Iterator end() nonconst
+		Iterator end() nonconst THROW_STD_EXCEPT
 		{
 			_call_non_const_func();
 			if (_size == 0)
@@ -628,7 +628,7 @@ namespace cildhdi
 
 		void reserve(size_t size) nonconst THROW_STD_EXCEPT
 		{
-			//_call_non_const_func();
+			_call_non_const_func();
 			if (size > _capacity)
 			{
 				_data = helpers::get_copy_str(_data.get(), size, false);
@@ -637,7 +637,7 @@ namespace cildhdi
 		}
 
 	public: //Operations
-		void reset() nonconst
+		void reset() nonconst THROW_STD_EXCEPT
 		{
 			_data.~shared_ptr();
 			_data = helpers::make_chars_shared_ptr<CharType>(nullptr);
@@ -646,7 +646,7 @@ namespace cildhdi
 			_cur_arg_index = 1;
 		}
 
-		void clear() nonconst
+		void clear() nonconst THROW_STD_EXCEPT
 		{
 			_call_non_const_func();
 			_size = 0;
@@ -659,7 +659,7 @@ namespace cildhdi
 			size_t old = size();
 			reserve(_get_expand_size(count));
 			_size += count;
-			for (size_t i = 0; i < _size; i++)
+			for (size_t i = old; i < _size; i++)
 			{
 				at(i) = ch;
 			}
@@ -770,8 +770,9 @@ namespace cildhdi
 				index++;
 			}
 			if (index == 100) return *this;
-			str = StringBase(_data.get(), fmt_tag_begin) + to_str(value) + 
-				StringBase(_data.get() + fmt_tag_end, _size - fmt_tag_end);
+			str = StringBase(_data.get(), fmt_tag_begin);
+			str += to_str(value);
+			str += StringBase(_data.get() + fmt_tag_end, _size - fmt_tag_end);
 			str._cur_arg_index = index + 1;
 			return str;
 		}
@@ -849,18 +850,8 @@ namespace cildhdi
 		}
 	public: //Statics
 		template<typename V>
-		static StringBase to_str(V value)
-		{
-			StringBase str(value);
-			return str;
-		}
+		static StringBase to_str(V value);
 
-		template<>
-		static StringBase to_str<ConstCharPtr>(ConstCharPtr str)
-		{
-			StringBase s(str);
-			return s;
-		}
 	private:
 		inline void _call_non_const_func() nonconst THROW_STD_EXCEPT
 		{
@@ -872,7 +863,7 @@ namespace cildhdi
 
 		size_t _get_expand_size(size_t increment) const
 		{
-			if (increment == 0) return 0;
+			if (_size + increment < _capacity) return _capacity;
 			else if (_size == 0) return increment;
 			size_t new_capacity = _capacity;
 			while (new_capacity < _size + increment)
@@ -896,6 +887,14 @@ namespace cildhdi
 	public:
 		static const size_t npos = static_cast<size_t>(-1);
 	};
+
+	template<typename Char>
+	template<typename V>
+	StringBase<Char> StringBase<Char>::to_str(V value)
+	{
+		StringBase str(value);
+		return str;
+	}
 
 	template<typename Char>
 	std::basic_ostream<Char>& operator<<(std::basic_ostream<Char>& os, const StringBase<Char>& s)

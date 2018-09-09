@@ -4,7 +4,12 @@
 #include <gtest/gtest.h>
 #include <random>
 #include "String.h"
+
+#ifdef _DEBUG
 #pragma comment(lib,"gtestd.lib")
+#else
+#pragma comment(lib,"gtest.lib")
+#endif // DEBUG
 
 #define String String
 //loop time
@@ -309,11 +314,10 @@ namespace
 	TEST(String, ArgTest)
 	{
 		{
-
+			std::cout << cildhdi::String("{%1} is a {%2}, but {%3} is a {%4}").arg("he").arg("sb").arg("yl").arg("sg") << std::endl;
 		}
 	}
 } //namespace
-
 
 
 int main(int argc, char** argv)
