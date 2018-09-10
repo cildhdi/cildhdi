@@ -329,6 +329,14 @@ namespace
 			}
 		}
 	}
+
+	TEST(String, ToTest)
+	{
+		{
+			String str = "47.328";
+			std::cout << str.to<long double>();
+		}
+	}
 } //namespace
 
 int main(int argc, char** argv)

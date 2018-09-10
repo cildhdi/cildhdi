@@ -12,8 +12,10 @@ FileName: String.h
 #define _CRT_NON_CONFORMING_WCSTOK
 #pragma warning(disable:4290)
 #pragma warning(disable:4996)
+#define UNSUPPORTIVE_TEMPLATE_SPECIALIZATION static_assert(false, "unsupportive template specialization")
 #else // g++
 #define INLINE __attribute__((always_inline)) inline
+#define UNSUPPORTIVE_TEMPLATE_SPECIALIZATION helpers::expect<errors::UnreachablePosition>(false)
 #endif // _MSC_VER
 
 #include <exception>
@@ -36,9 +38,72 @@ FileName: String.h
 		error_name()noexcept :StringError(#error_name) {}\
 	}
 #define DECLARE_STRING_ERROR(name) DECLARE_ERROR(name, StringError)
+#define DECLARE_FLOAT_NUMBER_PARSE(numeric_type, name) \
+		template<typename Char>\
+		numeric_type name (const Char* str)\
+		{\
+			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;\
+		}\
+		template<>\
+		numeric_type name <char>(const char* str)\
+		{\
+			char* end;\
+			numeric_type res = std:: str##name (str, &end);\
+			helpers::expect<errors::ParseError>(end != str);\
+			return res;\
+		}\
+		template<>\
+		numeric_type name <wchar_t>(const wchar_t* str)\
+		{\
+			wchar_t* end;\
+			numeric_type res = std:: wcs##name (str, &end);\
+			helpers::expect<errors::ParseError>(end != str);\
+			return res;\
+		}\
+		template<>\
+		class part_specialization_aton<numeric_type>\
+		{\
+		public:\
+			template<typename Char>\
+			static numeric_type aton(std::shared_ptr<Char> str)\
+			{\
+				return helpers:: name <Char>(str.get());\
+			}\
+		};
+#define DECLARE_INTEGRAL_NUMBER_PARSE(numeric_type, name, base) \
+		template<typename Char>\
+		numeric_type name (const Char* str)\
+		{\
+			helpers::expect<errors::UnreachablePosition>(false);\
+		}\
+		template<>\
+		numeric_type name <char>(const char* str)\
+		{\
+			char* end;\
+			numeric_type res = std:: str##name (str, &end, base);\
+			helpers::expect<errors::ParseError>(end != str);\
+			return res;\
+		}\
+		template<>\
+		numeric_type name <wchar_t>(const wchar_t* str)\
+		{\
+			wchar_t* end;\
+			numeric_type res = std:: wcs##name (str, &end, base);\
+			helpers::expect<errors::ParseError>(end != str);\
+			return res;\
+		}\
+		template<>\
+		class part_specialization_aton<numeric_type>\
+		{\
+		public:\
+			template<typename Char>\
+			static numeric_type aton(std::shared_ptr<Char> str)\
+			{\
+				return helpers:: name <Char>(str.get());\
+			}\
+		};
 #define nonconst
 #define THROW_STD_EXCEPT throw(std::exception)
-
 namespace cildhdi
 {
 	namespace errors
@@ -62,6 +127,7 @@ namespace cildhdi
 		DECLARE_STRING_ERROR(DifferentObj);
 		DECLARE_STRING_ERROR(UnsupportedType);
 		DECLARE_STRING_ERROR(UnreachablePosition);
+		DECLARE_STRING_ERROR(ParseError);
 
 	} //namespace errors
 
@@ -105,7 +171,7 @@ namespace cildhdi
 		template<typename Char>
 		INLINE size_t strlen_t(const Char* str)
 		{
-			helpers::expect<errors::UnreachablePosition>(false);
+			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
 			return 0;
 		}
 
@@ -124,7 +190,7 @@ namespace cildhdi
 		template<typename Char>
 		INLINE Char* strstr_t(Char* str, Char* target)
 		{
-			helpers::expect<errors::UnreachablePosition>(false);
+			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
 			return nullptr;
 		}
 
@@ -143,7 +209,7 @@ namespace cildhdi
 		template<typename Char>
 		INLINE Char* strtok_t(Char* str, const Char* delim)
 		{
-			helpers::expect<errors::UnreachablePosition>(false);
+			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
 			return nullptr;
 		}
 
@@ -166,7 +232,7 @@ namespace cildhdi
 			template<typename V>
 			static int vtos(Char* buffer, size_t size, const Char* format, V& value)
 			{
-				helpers::expect<errors::UnreachablePosition>(false);
+				UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
 				return 0;
 			}
 		};
@@ -201,7 +267,7 @@ namespace cildhdi
 			template<typename Char>
 			static Char* get_format(Char* format)
 			{
-				helpers::expect<errors::UnsupportedType>(false);
+				UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
 				return format;
 			}
 		};
@@ -302,7 +368,6 @@ namespace cildhdi
 			}
 		};
 
-
 		template<>
 		class part_specialization_fmt<long double>
 		{
@@ -315,6 +380,27 @@ namespace cildhdi
 			}
 		};
 
+		template<typename T>
+		class part_specialization_aton;
+
+		DECLARE_FLOAT_NUMBER_PARSE(float, tof);
+		DECLARE_FLOAT_NUMBER_PARSE(double, tod);
+		DECLARE_FLOAT_NUMBER_PARSE(long double, told);
+		DECLARE_INTEGRAL_NUMBER_PARSE(long, tol, 10);
+		DECLARE_INTEGRAL_NUMBER_PARSE(long long, toll, 10);
+		DECLARE_INTEGRAL_NUMBER_PARSE(unsigned long, toul, 10);
+		DECLARE_INTEGRAL_NUMBER_PARSE(unsigned long long, toull, 10);
+
+		template<typename T>
+		class part_specialization_aton
+		{
+		public:
+			template<typename Char>
+			static T aton(std::shared_ptr<Char> str)
+			{
+				return helpers::tol<Char>(str.get());
+			}
+		};
 	} //helpers
 
 	template<typename Char> class StringBase;
@@ -865,6 +951,16 @@ namespace cildhdi
 			return arg<T>(t).arg<Types...>(args...);
 		}
 
+		template<typename T, typename std::enable_if<std::is_arithmetic<T>::value, int>::type = 0>
+		T to() const THROW_STD_EXCEPT
+		{
+			constexpr bool is_int = std::is_same<T, int>::value;
+#if is_int
+			return helpers::part_specialization_aton<long>::template aton<CharType>(c_str());
+#else
+			return helpers::part_specialization_aton<T>::template aton<CharType>(c_str());
+#endif
+		}
 	public: //operators
 		CharReference operator[](size_t index) nonconst THROW_STD_EXCEPT
 		{
