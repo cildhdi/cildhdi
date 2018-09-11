@@ -104,6 +104,8 @@ FileName: String.h
 		};
 #define nonconst
 #define THROW_STD_EXCEPT throw(std::exception)
+
+
 namespace cildhdi
 {
 	namespace errors
@@ -142,8 +144,9 @@ namespace cildhdi
 				throw E();
 			}
 		}
+#define WITH_CHAR_RESTRICTION , typename std::enable_if<std::is_same<char, Char>::value || std::is_same<wchar_t, Char>::value, int>::type = 0
 
-		template<typename Char>
+		template<typename Char WITH_CHAR_RESTRICTION>
 		INLINE void* copy_str(Char* dst, const Char* src, size_t size) THROW_STD_EXCEPT
 		{
 			helpers::expect<errors::NullPtr>(dst != nullptr);
@@ -152,13 +155,13 @@ namespace cildhdi
 			return std::memcpy(dst, src, size * sizeof(Char));
 		}
 
-		template<typename Char>
+		template<typename Char WITH_CHAR_RESTRICTION>
 		INLINE std::shared_ptr<Char> make_chars_shared_ptr(Char* ptr)
 		{
 			return std::shared_ptr<Char>(ptr, std::default_delete<Char[]>());
 		}
 
-		template<typename Char>
+		template<typename Char WITH_CHAR_RESTRICTION>
 		INLINE std::shared_ptr<Char> get_copy_str(const Char* src, size_t size, bool with_zero = false) THROW_STD_EXCEPT
 		{
 			if (size == 0 && !with_zero) return nullptr;
@@ -168,10 +171,9 @@ namespace cildhdi
 			return make_chars_shared_ptr(res);
 		}
 
-		template<typename Char>
+		template<typename Char WITH_CHAR_RESTRICTION>
 		INLINE size_t strlen_t(const Char* str)
 		{
-			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
 			return 0;
 		}
 
@@ -187,10 +189,9 @@ namespace cildhdi
 			return std::wcslen(str);
 		}
 
-		template<typename Char>
+		template<typename Char WITH_CHAR_RESTRICTION>
 		INLINE Char* strstr_t(Char* str, Char* target)
 		{
-			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
 			return nullptr;
 		}
 
@@ -206,10 +207,9 @@ namespace cildhdi
 			return std::wcsstr(str, target);
 		}
 
-		template<typename Char>
+		template<typename Char WITH_CHAR_RESTRICTION>
 		INLINE Char* strtok_t(Char* str, const Char* delim)
 		{
-			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
 			return nullptr;
 		}
 
@@ -225,11 +225,17 @@ namespace cildhdi
 			return std::wcstok(str, delim);
 		}
 
-		template<typename Char>
+		template<typename Char WITH_CHAR_RESTRICTION>
+		Char* memmove_t(Char* dest, const Char* src, size_t char_count)
+		{
+			return reinterpret_cast<Char*>(std::memmove(reinterpret_cast<void*>(dest), reinterpret_cast<const void*>(src), char_count * sizeof(Char)));
+		}
+
+		template<typename Char WITH_CHAR_RESTRICTION>
 		class part_specialization_vtos
 		{
 		public:
-			template<typename V>
+			template<typename V, typename std::enable_if<std::is_arithmetic<V>::value, int>::type = 0>
 			static int vtos(Char* buffer, size_t size, const Char* format, V& value)
 			{
 				UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
@@ -260,11 +266,11 @@ namespace cildhdi
 		};
 
 
-		template<typename V>
+		template<typename V, typename std::enable_if<std::is_arithmetic<V>::value, int>::type = 0>
 		class part_specialization_fmt
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;
@@ -276,7 +282,7 @@ namespace cildhdi
 		class part_specialization_fmt<char>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'c';
@@ -288,7 +294,7 @@ namespace cildhdi
 		class part_specialization_fmt<int>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'd';
@@ -300,7 +306,7 @@ namespace cildhdi
 		class part_specialization_fmt<long>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'l'; format[2] = 'd';
@@ -312,7 +318,7 @@ namespace cildhdi
 		class part_specialization_fmt<long long>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'l'; format[2] = 'l'; format[3] = 'd';
@@ -324,7 +330,7 @@ namespace cildhdi
 		class part_specialization_fmt<unsigned int>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'u';
@@ -333,10 +339,10 @@ namespace cildhdi
 		};
 
 		template<>
-		class part_specialization_fmt< unsigned long>
+		class part_specialization_fmt<unsigned long>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'l'; format[2] = 'u';
@@ -348,7 +354,7 @@ namespace cildhdi
 		class part_specialization_fmt<unsigned long long>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'l'; format[2] = 'l'; format[3] = 'u';
@@ -360,7 +366,7 @@ namespace cildhdi
 		class part_specialization_fmt<double>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'l'; format[2] = 'f';
@@ -372,7 +378,7 @@ namespace cildhdi
 		class part_specialization_fmt<long double>
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static Char* get_format(Char* format)
 			{
 				format[0] = '%'; format[1] = 'L'; format[2] = 'f';
@@ -395,7 +401,7 @@ namespace cildhdi
 		class part_specialization_aton
 		{
 		public:
-			template<typename Char>
+			template<typename Char WITH_CHAR_RESTRICTION>
 			static T aton(std::shared_ptr<Char> str)
 			{
 				return helpers::tol<Char>(str.get());
@@ -820,7 +826,7 @@ namespace cildhdi
 			--_size;
 		}
 
-		int compare(const StringBase& str) const
+		int compare(const StringBase& str) const THROW_STD_EXCEPT
 		{
 			if (_data.get() == str._data.get())
 				return 0;
@@ -918,6 +924,7 @@ namespace cildhdi
 		template<typename T>
 		StringBase arg(T value) const THROW_STD_EXCEPT
 		{
+			if (_cur_arg_index == 0) return *this;
 			int index = _cur_arg_index;
 			StringBase str;
 			CharType begin_c[3] = { '{', '%', '\0' };
@@ -937,7 +944,12 @@ namespace cildhdi
 				}
 				index++;
 			}
-			if (index == 100) return *this;
+			if (index == 100)
+			{
+				str = *this;
+				str._cur_arg_index = 0;
+				return str;
+			}
 			str = StringBase(_data.get(), fmt_tag_begin);
 			str += to_str(value);
 			str += StringBase(_data.get() + fmt_tag_end, _size - fmt_tag_end);
@@ -960,6 +972,43 @@ namespace cildhdi
 #else
 			return helpers::part_specialization_aton<T>::template aton<CharType>(c_str());
 #endif
+		}
+
+		StringBase& insert(size_t index, size_t count, CharType ch) nonconst THROW_STD_EXCEPT
+		{
+			helpers::expect<errors::OutOfRange>(index <= _size);
+			_call_non_const_func();
+			reserve(_get_expand_size(count));
+			helpers::memmove_t(_data.get() + index + count, _data.get() + index, _size - index);
+			_size += count;
+			for (size_t i = index; i < index + count; i++)
+				at(i) = ch;
+			return *this;
+		}
+
+		StringBase& insert(size_t index, const Char* str, size_t size = npos) nonconst THROW_STD_EXCEPT
+		{
+			helpers::expect<errors::OutOfRange>(index <= _size);
+			_call_non_const_func();
+			size_t count = (size == npos ? helpers::strlen_t(str) : size);
+			reserve(_get_expand_size(count));
+			helpers::memmove_t(_data.get() + index + count, _data.get() + index, _size - index);
+			_size += count;
+			helpers::copy_str(_data.get() + index, str, count);
+			return *this;
+		}
+
+		StringBase& insert(size_t index, const StringBase& str, size_t index_str = 0, size_t count = npos) nonconst THROW_STD_EXCEPT
+		{
+			helpers::expect<errors::OutOfRange>(index <= _size);
+			str._range_check(index_str);
+			_call_non_const_func();
+			return insert(index, str._data.get() + index_str, count == npos ? str.size() : count);
+		}
+
+		StringBase& insert(Iterator pos, size_t count, CharType ch) nonconst THROW_STD_EXCEPT
+		{
+			return insert(std::distance(begin(), pos), count, ch);
 		}
 	public: //operators
 		CharReference operator[](size_t index) nonconst THROW_STD_EXCEPT
@@ -989,6 +1038,7 @@ namespace cildhdi
 			_data = other._data;
 			_size = other._size;
 			_capacity = other._capacity;
+			_cur_arg_index = other._cur_arg_index;
 			return *this;
 		}
 
