@@ -13,9 +13,11 @@ FileName: String.h
 #pragma warning(disable:4290)
 #pragma warning(disable:4996)
 #define UNSUPPORTIVE_TEMPLATE_SPECIALIZATION static_assert(false, "unsupportive template specialization")
-#else // g++
+#else // g++...
 #define INLINE __attribute__((always_inline)) inline
 #define UNSUPPORTIVE_TEMPLATE_SPECIALIZATION helpers::expect<errors::UnreachablePosition>(false)
+//to use swprintf()
+#undef __STRICT_ANSI__
 #endif // _MSC_VER
 
 #include <exception>
@@ -29,6 +31,7 @@ FileName: String.h
 #include <vector>
 #include <cwchar>
 #include <tuple>
+#include <functional>
 
 #define DECLARE_ERROR(error_name, base_class_name) \
 	class error_name :public base_class_name\
@@ -43,6 +46,7 @@ FileName: String.h
 		numeric_type name (const Char* str)\
 		{\
 			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;\
+			return 0;\
 		}\
 		template<>\
 		numeric_type name <char>(const char* str)\
@@ -158,6 +162,7 @@ namespace cildhdi
 		template<typename Char WITH_CHAR_RESTRICTION>
 		INLINE std::shared_ptr<Char> make_chars_shared_ptr(Char* ptr)
 		{
+			if (ptr == nullptr) return nullptr;
 			return std::shared_ptr<Char>(ptr, std::default_delete<Char[]>());
 		}
 
@@ -534,6 +539,7 @@ namespace cildhdi
 			CharReference operator*() THROW_STD_EXCEPT
 			{
 				_nullptr_check();
+				_range_check(0);
 				return *_position;
 			}
 
@@ -870,6 +876,15 @@ namespace cildhdi
 			return str;
 		}
 
+		size_t copy(Char* dest, size_t count, size_t pos = 0) const THROW_STD_EXCEPT
+		{
+			if (count == npos || pos + count > _size)
+				count = _size - pos;
+			helpers::copy_str(dest, _data.get() + pos, count);
+			helpers::expect<errors::OutOfRange>(pos < _size);
+			return count;
+		}
+
 		std::vector<StringBase> split(const CharType* delim) const THROW_STD_EXCEPT
 		{
 			auto cstr = c_str();
@@ -895,6 +910,71 @@ namespace cildhdi
 			return StringBase(_data.get() + _size - count, count);
 		}
 
+		StringBase& insert(size_t index, size_t count, CharType ch) nonconst THROW_STD_EXCEPT
+		{
+			helpers::expect<errors::OutOfRange>(index <= _size);
+			_call_non_const_func();
+			reserve(_get_expand_size(count));
+			helpers::memmove_t(_data.get() + index + count, _data.get() + index, _size - index);
+			_size += count;
+			for (size_t i = index; i < index + count; i++)
+				at(i) = ch;
+			return *this;
+		}
+
+		StringBase& insert(size_t index, const Char* str, size_t size = npos) nonconst THROW_STD_EXCEPT
+		{
+			helpers::expect<errors::OutOfRange>(index <= _size);
+			_call_non_const_func();
+			size_t count = (size == npos ? helpers::strlen_t(str) : size);
+			reserve(_get_expand_size(count));
+			helpers::memmove_t(_data.get() + index + count, _data.get() + index, _size - index);
+			_size += count;
+			helpers::copy_str(_data.get() + index, str, count);
+			return *this;
+		}
+
+		StringBase& insert(size_t index, const StringBase& str, size_t index_str = 0, size_t count = npos) nonconst THROW_STD_EXCEPT
+		{
+			helpers::expect<errors::OutOfRange>(index <= _size);
+			str._range_check(index_str);
+			_call_non_const_func();
+			return insert(index, str._data.get() + index_str, count == npos ? str.size() : count);
+		}
+
+		StringBase& insert(Iterator pos, size_t count, CharType ch) nonconst THROW_STD_EXCEPT
+		{
+			return insert(std::distance(begin(), pos), count, ch);
+		}
+
+		StringBase & erase(size_t index = 0, size_t count = npos) nonconst THROW_STD_EXCEPT
+		{
+			if (count == 0) return *this;
+			helpers::expect<errors::OutOfRange>(index <= _size && index + count <= _size);
+			_call_non_const_func();
+			helpers::memmove_t(_data.get() + index, _data.get() + index + count, _size - index - count);
+			_size -= count;
+			return *this;
+		}
+
+		Iterator erase(Iterator pos) nonconst THROW_STD_EXCEPT
+		{
+			pos._range_check(0);
+			size_t index = std::distance(begin(), pos);
+			erase(index, 1);
+			return Iterator(this, _data.get() + index);
+		}
+
+		Iterator erase(Iterator first, Iterator last) nonconst THROW_STD_EXCEPT
+		{
+			first._range_check(0);
+			size_t index = std::distance(begin(), first);
+			size_t count = std::distance(first, last);
+			erase(index, count);
+			return Iterator(this, _data.get() + index);
+		}
+
+	public: //tranfer
 		StringBase to_upper() const THROW_STD_EXCEPT
 		{
 			StringBase s(*this);
@@ -974,42 +1054,7 @@ namespace cildhdi
 #endif
 		}
 
-		StringBase& insert(size_t index, size_t count, CharType ch) nonconst THROW_STD_EXCEPT
-		{
-			helpers::expect<errors::OutOfRange>(index <= _size);
-			_call_non_const_func();
-			reserve(_get_expand_size(count));
-			helpers::memmove_t(_data.get() + index + count, _data.get() + index, _size - index);
-			_size += count;
-			for (size_t i = index; i < index + count; i++)
-				at(i) = ch;
-			return *this;
-		}
 
-		StringBase& insert(size_t index, const Char* str, size_t size = npos) nonconst THROW_STD_EXCEPT
-		{
-			helpers::expect<errors::OutOfRange>(index <= _size);
-			_call_non_const_func();
-			size_t count = (size == npos ? helpers::strlen_t(str) : size);
-			reserve(_get_expand_size(count));
-			helpers::memmove_t(_data.get() + index + count, _data.get() + index, _size - index);
-			_size += count;
-			helpers::copy_str(_data.get() + index, str, count);
-			return *this;
-		}
-
-		StringBase& insert(size_t index, const StringBase& str, size_t index_str = 0, size_t count = npos) nonconst THROW_STD_EXCEPT
-		{
-			helpers::expect<errors::OutOfRange>(index <= _size);
-			str._range_check(index_str);
-			_call_non_const_func();
-			return insert(index, str._data.get() + index_str, count == npos ? str.size() : count);
-		}
-
-		StringBase& insert(Iterator pos, size_t count, CharType ch) nonconst THROW_STD_EXCEPT
-		{
-			return insert(std::distance(begin(), pos), count, ch);
-		}
 	public: //operators
 		CharReference operator[](size_t index) nonconst THROW_STD_EXCEPT
 		{
