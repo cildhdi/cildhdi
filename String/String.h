@@ -41,76 +41,47 @@ FileName: String.h
 		error_name()noexcept :StringError(#error_name) {}\
 	}
 #define DECLARE_STRING_ERROR(name) DECLARE_ERROR(name, StringError)
-#define DECLARE_FLOAT_NUMBER_PARSE(numeric_type, name) \
+#define DECLARE_NUMERIC_PARSE(numeric_type, name, ...) \
+	template<typename Char>\
+	numeric_type name (const Char* str)\
+	{\
+		UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;\
+		return 0;\
+	}\
+	template<>\
+	numeric_type name <char>(const char* str)\
+	{\
+		char* end;\
+		numeric_type res = std:: str##name (__VA_ARGS__);\
+		helpers::expect<errors::ParseError>(end != str);\
+		return res;\
+	}\
+	template<>\
+	numeric_type name <wchar_t>(const wchar_t* str)\
+	{\
+		wchar_t* end;\
+		numeric_type res = std:: wcs##name (__VA_ARGS__);\
+		helpers::expect<errors::ParseError>(end != str);\
+		return res;\
+	}\
+	template<>\
+	class part_specialization_aton<numeric_type>\
+	{\
+	public:\
 		template<typename Char>\
-		numeric_type name (const Char* str)\
+		static numeric_type aton(std::shared_ptr<Char> str)\
 		{\
-			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;\
-			return 0;\
+			return helpers:: name <Char>(str.get());\
 		}\
-		template<>\
-		numeric_type name <char>(const char* str)\
-		{\
-			char* end;\
-			numeric_type res = std:: str##name (str, &end);\
-			helpers::expect<errors::ParseError>(end != str);\
-			return res;\
-		}\
-		template<>\
-		numeric_type name <wchar_t>(const wchar_t* str)\
-		{\
-			wchar_t* end;\
-			numeric_type res = std:: wcs##name (str, &end);\
-			helpers::expect<errors::ParseError>(end != str);\
-			return res;\
-		}\
-		template<>\
-		class part_specialization_aton<numeric_type>\
-		{\
-		public:\
-			template<typename Char>\
-			static numeric_type aton(std::shared_ptr<Char> str)\
-			{\
-				return helpers:: name <Char>(str.get());\
-			}\
-		};
-#define DECLARE_INTEGRAL_NUMBER_PARSE(numeric_type, name, base) \
-		template<typename Char>\
-		numeric_type name (const Char* str)\
-		{\
-			helpers::expect<errors::UnreachablePosition>(false);\
-		}\
-		template<>\
-		numeric_type name <char>(const char* str)\
-		{\
-			char* end;\
-			numeric_type res = std:: str##name (str, &end, base);\
-			helpers::expect<errors::ParseError>(end != str);\
-			return res;\
-		}\
-		template<>\
-		numeric_type name <wchar_t>(const wchar_t* str)\
-		{\
-			wchar_t* end;\
-			numeric_type res = std:: wcs##name (str, &end, base);\
-			helpers::expect<errors::ParseError>(end != str);\
-			return res;\
-		}\
-		template<>\
-		class part_specialization_aton<numeric_type>\
-		{\
-		public:\
-			template<typename Char>\
-			static numeric_type aton(std::shared_ptr<Char> str)\
-			{\
-				return helpers:: name <Char>(str.get());\
-			}\
-		};
+	};
+#define DECLARE_FLOAT_NUMBER_PARSE(numeric_type, name) DECLARE_NUMERIC_PARSE(numeric_type, name, str, &end)
+#define DECLARE_INTEGRAL_NUMBER_PARSE(numeric_type, name, base) DECLARE_NUMERIC_PARSE(numeric_type, name, str, &end, base)
 #define nonconst
 #define THROW_STD_EXCEPT throw(std::exception)
+#define WITH_CHAR_RESTRICTION , typename std::enable_if<std::is_same<char, Char>::value || std::is_same<wchar_t, Char>::value, int>::type = 0
 
 
-namespace cildhdi
+namespace cl
 {
 	namespace errors
 	{
@@ -148,7 +119,6 @@ namespace cildhdi
 				throw E();
 			}
 		}
-#define WITH_CHAR_RESTRICTION , typename std::enable_if<std::is_same<char, Char>::value || std::is_same<wchar_t, Char>::value, int>::type = 0
 
 		template<typename Char WITH_CHAR_RESTRICTION>
 		INLINE void* copy_str(Char* dst, const Char* src, size_t size) THROW_STD_EXCEPT
@@ -529,7 +499,7 @@ namespace cildhdi
 				return *this;
 			}
 
-			IteratorBase operator++(int) const
+			const IteratorBase operator++(int) const
 			{
 				_nullptr_check();
 				_range_check(1);
@@ -974,7 +944,7 @@ namespace cildhdi
 			return Iterator(this, _data.get() + index);
 		}
 
-	public: //tranfer
+	public: //transfer
 		StringBase to_upper() const THROW_STD_EXCEPT
 		{
 			StringBase s(*this);
@@ -1001,6 +971,13 @@ namespace cildhdi
 			return s;
 		}
 
+		void set_max_arg_index(size_t max_index) nonconst
+		{
+			if (max_index < 10)
+				return;
+			_max_arg_index = max_index;
+		}
+
 		template<typename T>
 		StringBase arg(T value) const THROW_STD_EXCEPT
 		{
@@ -1012,7 +989,7 @@ namespace cildhdi
 			StringBase fmt_begin(begin_c);
 			StringBase fmt_end(end_c);
 			size_t fmt_tag_begin, fmt_tag_end;
-			while (index < 100)
+			while (index < static_cast<int>(_max_arg_index))
 			{
 				StringBase si = to_str(index);
 				str = fmt_begin + si + fmt_end;
@@ -1024,7 +1001,7 @@ namespace cildhdi
 				}
 				index++;
 			}
-			if (index == 100)
+			if (index == _max_arg_index)
 			{
 				str = *this;
 				str._cur_arg_index = 0;
@@ -1132,7 +1109,7 @@ namespace cildhdi
 		static StringBase to_str(V value);
 
 	private:
-		inline void _call_non_const_func() nonconst THROW_STD_EXCEPT
+		INLINE void _call_non_const_func() nonconst THROW_STD_EXCEPT
 		{
 			if (!_data.unique())
 			{
@@ -1162,6 +1139,7 @@ namespace cildhdi
 		size_t _capacity;
 		size_t _cur_arg_index = 1;
 		const double _expand_proportion = 1.5;
+		size_t _max_arg_index = 100;
 		static_assert(std::is_same<CharType, char>::value || std::is_same<CharType, wchar_t>::value, "unsupported type: Char.");
 	public:
 		static const size_t npos = static_cast<size_t>(-1);
@@ -1194,7 +1172,7 @@ namespace cildhdi
 	}
 
 	template<typename Char>
-	StringBase<Char> operator+(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	const StringBase<Char> operator+(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
 	{
 		auto res = lhs;
 		res.append(rhs);
@@ -1202,7 +1180,7 @@ namespace cildhdi
 	}
 
 	template<typename Char>
-	StringBase<Char> operator+(const StringBase<Char>& lhs, Char rhs) THROW_STD_EXCEPT
+	const StringBase<Char> operator+(const StringBase<Char>& lhs, Char rhs) THROW_STD_EXCEPT
 	{
 		auto res = lhs;
 		res.append(rhs);
@@ -1210,7 +1188,7 @@ namespace cildhdi
 	}
 
 	template<typename Char>
-	StringBase<Char> operator+(Char lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	const StringBase<Char> operator+(Char lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
 	{
 		StringBase<Char> res;
 		res.append(lhs);
@@ -1257,6 +1235,6 @@ namespace cildhdi
 	using String = StringBase<char>;
 	using WString = StringBase<wchar_t>;
 
-} //namespace cildhdi
+} //namespace cl
 
 #endif
