@@ -41,76 +41,48 @@ FileName: String.h
 		error_name()noexcept :StringError(#error_name) {}\
 	}
 #define DECLARE_STRING_ERROR(name) DECLARE_ERROR(name, StringError)
-#define DECLARE_FLOAT_NUMBER_PARSE(numeric_type, name) \
+#define DECLARE_NUMERIC_PARSE(numeric_type, name, ...) \
+	template<typename Char>\
+	numeric_type name (const Char* str)\
+	{\
+		UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;\
+		return 0;\
+	}\
+	template<>\
+	numeric_type name <char>(const char* str)\
+	{\
+		char* end;\
+		numeric_type res = std:: str##name (__VA_ARGS__);\
+		helpers::expect<errors::ParseError>(end != str);\
+		return res;\
+	}\
+	template<>\
+	numeric_type name <wchar_t>(const wchar_t* str)\
+	{\
+		wchar_t* end;\
+		numeric_type res = std:: wcs##name (__VA_ARGS__);\
+		helpers::expect<errors::ParseError>(end != str);\
+		return res;\
+	}\
+	template<>\
+	class part_specialization_aton<numeric_type>\
+	{\
+	public:\
 		template<typename Char>\
-		numeric_type name (const Char* str)\
+		static numeric_type aton(std::shared_ptr<Char> str)\
 		{\
-			UNSUPPORTIVE_TEMPLATE_SPECIALIZATION;\
-			return 0;\
+			return helpers:: name <Char>(str.get());\
 		}\
-		template<>\
-		numeric_type name <char>(const char* str)\
-		{\
-			char* end;\
-			numeric_type res = std:: str##name (str, &end);\
-			helpers::expect<errors::ParseError>(end != str);\
-			return res;\
-		}\
-		template<>\
-		numeric_type name <wchar_t>(const wchar_t* str)\
-		{\
-			wchar_t* end;\
-			numeric_type res = std:: wcs##name (str, &end);\
-			helpers::expect<errors::ParseError>(end != str);\
-			return res;\
-		}\
-		template<>\
-		class part_specialization_aton<numeric_type>\
-		{\
-		public:\
-			template<typename Char>\
-			static numeric_type aton(std::shared_ptr<Char> str)\
-			{\
-				return helpers:: name <Char>(str.get());\
-			}\
-		};
-#define DECLARE_INTEGRAL_NUMBER_PARSE(numeric_type, name, base) \
-		template<typename Char>\
-		numeric_type name (const Char* str)\
-		{\
-			helpers::expect<errors::UnreachablePosition>(false);\
-		}\
-		template<>\
-		numeric_type name <char>(const char* str)\
-		{\
-			char* end;\
-			numeric_type res = std:: str##name (str, &end, base);\
-			helpers::expect<errors::ParseError>(end != str);\
-			return res;\
-		}\
-		template<>\
-		numeric_type name <wchar_t>(const wchar_t* str)\
-		{\
-			wchar_t* end;\
-			numeric_type res = std:: wcs##name (str, &end, base);\
-			helpers::expect<errors::ParseError>(end != str);\
-			return res;\
-		}\
-		template<>\
-		class part_specialization_aton<numeric_type>\
-		{\
-		public:\
-			template<typename Char>\
-			static numeric_type aton(std::shared_ptr<Char> str)\
-			{\
-				return helpers:: name <Char>(str.get());\
-			}\
-		};
+	};
+#define DECLARE_FLOAT_NUMBER_PARSE(numeric_type, name) DECLARE_NUMERIC_PARSE(numeric_type, name, str, &end)
+#define DECLARE_INTEGRAL_NUMBER_PARSE(numeric_type, name, base) DECLARE_NUMERIC_PARSE(numeric_type, name, str, &end, base)
 #define nonconst
-#define THROW_STD_EXCEPT throw(std::exception)
+//ISO C++1z does not allow dynamic exception specifications
+#define THROW_EXCEPT /*throw(std::exception)*/
+#define WITH_CHAR_RESTRICTION , typename std::enable_if<std::is_same<char, Char>::value || std::is_same<wchar_t, Char>::value, int>::type = 0
 
 
-namespace cildhdi
+namespace cl
 {
 	namespace errors
 	{
@@ -141,17 +113,16 @@ namespace cildhdi
 	{
 
 		template<typename E>
-		INLINE void expect(bool condition) throw(E)
+		INLINE void expect(bool condition) THROW_EXCEPT
 		{
 			if (!condition)
 			{
 				throw E();
 			}
 		}
-#define WITH_CHAR_RESTRICTION , typename std::enable_if<std::is_same<char, Char>::value || std::is_same<wchar_t, Char>::value, int>::type = 0
 
 		template<typename Char WITH_CHAR_RESTRICTION>
-		INLINE void* copy_str(Char* dst, const Char* src, size_t size) THROW_STD_EXCEPT
+		INLINE void* copy_str(Char* dst, const Char* src, size_t size) THROW_EXCEPT
 		{
 			helpers::expect<errors::NullPtr>(dst != nullptr);
 			helpers::expect<errors::NullPtr>(src != nullptr);
@@ -167,7 +138,7 @@ namespace cildhdi
 		}
 
 		template<typename Char WITH_CHAR_RESTRICTION>
-		INLINE std::shared_ptr<Char> get_copy_str(const Char* src, size_t size, bool with_zero = false) THROW_STD_EXCEPT
+		INLINE std::shared_ptr<Char> get_copy_str(const Char* src, size_t size, bool with_zero = false) THROW_EXCEPT
 		{
 			if (size == 0 && !with_zero) return nullptr;
 			Char* res = new Char[size + static_cast<size_t>(with_zero ? 1 : 0)];
@@ -213,21 +184,21 @@ namespace cildhdi
 		}
 
 		template<typename Char WITH_CHAR_RESTRICTION>
-		INLINE Char* strtok_t(Char* str, const Char* delim)
+		INLINE Char* strtok_t(Char* str, const Char* delim, Char** ptr)
 		{
 			return nullptr;
 		}
 
 		template<>
-		INLINE char* strtok_t<char>(char* str, const char* delim)
+		INLINE char* strtok_t<char>(char* str, const char* delim, char** ptr)
 		{
 			return std::strtok(str, delim);
 		}
 
 		template<>
-		INLINE wchar_t* strtok_t<wchar_t>(wchar_t* str, const wchar_t* delim)
+		INLINE wchar_t* strtok_t<wchar_t>(wchar_t* str, const wchar_t* delim, wchar_t** ptr)
 		{
-			return std::wcstok(str, delim);
+			return std::wcstok(str, delim, ptr);
 		}
 
 		template<typename Char WITH_CHAR_RESTRICTION>
@@ -435,33 +406,33 @@ namespace cildhdi
 			{
 			}
 		public: //operators
-			IteratorReference operator+=(typename IteratorBase::difference_type n) THROW_STD_EXCEPT
+			IteratorReference operator+=(typename IteratorBase::difference_type n) THROW_EXCEPT
 			{
 				_range_check(n);
 				_position += n;
 				return *this;
 			}
 
-			IteratorBase operator+(typename IteratorBase::difference_type n)const THROW_STD_EXCEPT
+			IteratorBase operator+(typename IteratorBase::difference_type n)const THROW_EXCEPT
 			{
 				_range_check(n);
 				return IteratorBase(_obj, _position + n);
 			}
 
-			IteratorReference operator-=(typename IteratorBase::difference_type n) THROW_STD_EXCEPT
+			IteratorReference operator-=(typename IteratorBase::difference_type n) THROW_EXCEPT
 			{
 				_range_check(-n);
 				_position -= n;
 				return *this;
 			}
 
-			IteratorBase operator-(typename IteratorBase::difference_type n)const THROW_STD_EXCEPT
+			IteratorBase operator-(typename IteratorBase::difference_type n)const THROW_EXCEPT
 			{
 				_range_check(-n);
 				return IteratorBase(_obj, _position - n);
 			}
 
-			typename IteratorBase<Char>::difference_type operator-(const IteratorBase<Char>& rhs)const THROW_STD_EXCEPT
+			typename IteratorBase<Char>::difference_type operator-(const IteratorBase<Char>& rhs)const THROW_EXCEPT
 			{
 				if (_position == nullptr && rhs._position == nullptr)
 				{
@@ -482,25 +453,25 @@ namespace cildhdi
 				return *this + n;
 			}
 
-			bool operator<(const IteratorBase& rhs)const THROW_STD_EXCEPT
+			bool operator<(const IteratorBase& rhs)const THROW_EXCEPT
 			{
 				_dif_obj_check(rhs);
 				return _position < rhs._position;
 			}
 
-			bool operator>(const IteratorBase& rhs)const THROW_STD_EXCEPT
+			bool operator>(const IteratorBase& rhs)const THROW_EXCEPT
 			{
 				_dif_obj_check(rhs);
 				return _position > rhs._position;
 			}
 
-			bool operator<=(const IteratorBase& rhs)const THROW_STD_EXCEPT
+			bool operator<=(const IteratorBase& rhs)const THROW_EXCEPT
 			{
 				_dif_obj_check(rhs);
 				return _position <= rhs._position;
 			}
 
-			bool operator>=(const IteratorBase& rhs)const THROW_STD_EXCEPT
+			bool operator>=(const IteratorBase& rhs)const THROW_EXCEPT
 			{
 				_dif_obj_check(rhs);
 				return _position >= rhs._position;
@@ -536,7 +507,7 @@ namespace cildhdi
 				return IteratorBase(_obj, _position + 1);
 			}
 
-			CharReference operator*() THROW_STD_EXCEPT
+			CharReference operator*() THROW_EXCEPT
 			{
 				_nullptr_check();
 				_range_check(0);
@@ -564,21 +535,21 @@ namespace cildhdi
 
 			}
 
-			INLINE void _range_check(typename IteratorBase::difference_type d)const THROW_STD_EXCEPT
+			INLINE void _range_check(typename IteratorBase::difference_type d)const THROW_EXCEPT
 			{
 				_nullptr_check();
 				typename IteratorBase::difference_type rd = std::distance(_obj->_data.get(), _position + d);
 				helpers::expect<errors::OutOfRange>(rd >= 0 && rd <= static_cast<typename IteratorBase::difference_type>(_obj->size()));
 			}
 
-			INLINE void _dif_obj_check(const IteratorBase& rhs)const THROW_STD_EXCEPT
+			INLINE void _dif_obj_check(const IteratorBase& rhs)const THROW_EXCEPT
 			{
 				_nullptr_check();
 				rhs._nullptr_check();
 				helpers::expect<errors::DifferentObj>(_obj == rhs._obj);
 			}
 
-			INLINE void _nullptr_check() const THROW_STD_EXCEPT
+			INLINE void _nullptr_check() const THROW_EXCEPT
 			{
 				helpers::expect<errors::NullPtr>(_obj != nullptr && _position != nullptr);
 			}
@@ -588,13 +559,17 @@ namespace cildhdi
 		};
 
 		template<typename Char>
-		IteratorBase<Char> operator+(typename IteratorBase<Char>::difference_type n, IteratorBase<Char> it) THROW_STD_EXCEPT
+		IteratorBase<Char> operator+(typename IteratorBase<Char>::difference_type n, IteratorBase<Char> it) THROW_EXCEPT
 		{
 			return it + n;
 		}
 
 
 	} //namespace iterators
+
+
+	template<typename Char>
+	std::basic_ostream<Char>& operator<<(std::basic_ostream<Char>& os, const StringBase<Char>& s);
 
 	template<typename Char>
 	class StringBase
@@ -608,13 +583,13 @@ namespace cildhdi
 		using Iterator = iterators::IteratorBase<CharType>;
 		friend class iterators::IteratorBase<CharType>;
 	public: //Constructors
-		StringBase() THROW_STD_EXCEPT
+		StringBase() THROW_EXCEPT
 		{
 			reset();
 		}
 
 		template<typename V>
-		StringBase(V value, typename std::enable_if<std::is_arithmetic<V>::value>::type* = 0) THROW_STD_EXCEPT
+		StringBase(V value, typename std::enable_if<std::is_arithmetic<V>::value>::type* = 0) THROW_EXCEPT
 		{
 			reset();
 			CharType format[5] = { 0 };
@@ -627,7 +602,7 @@ namespace cildhdi
 			_data = helpers::get_copy_str<CharType>(buffer, _size, false);
 		}
 
-		StringBase(const StringBase& other) THROW_STD_EXCEPT
+		StringBase(const StringBase& other) THROW_EXCEPT
 		{
 			reset();
 			_data = other._data;
@@ -636,13 +611,13 @@ namespace cildhdi
 			_cur_arg_index = other._cur_arg_index;
 		}
 
-		StringBase(StringBase&& other) THROW_STD_EXCEPT
+		StringBase(StringBase&& other) THROW_EXCEPT
 		{
 			reset();
 			swap(other);
 		}
 
-		StringBase(const CharType* str, size_t count) THROW_STD_EXCEPT
+		StringBase(const CharType* str, size_t count) THROW_EXCEPT
 		{
 			reset();
 			_size = (count == npos ? helpers::strlen_t(str) : count);
@@ -654,7 +629,7 @@ namespace cildhdi
 			_data = helpers::get_copy_str<CharType>(str, _size, false);
 		}
 
-		StringBase(const CharType* str) THROW_STD_EXCEPT
+		StringBase(const CharType* str) THROW_EXCEPT
 		{
 			reset();
 			_size = helpers::strlen_t(str);
@@ -666,47 +641,47 @@ namespace cildhdi
 			_data = helpers::get_copy_str<CharType>(str, _size, false);
 		}
 	public: //Element access
-		CharType at(size_t index) const THROW_STD_EXCEPT
+		CharType at(size_t index) const THROW_EXCEPT
 		{
 			_range_check(index);
 			CharType c = *(_data.get() + index);
 			return c;
 		}
 
-		CharReference at(size_t index) nonconst THROW_STD_EXCEPT
+		CharReference at(size_t index) nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			_range_check(index);
 			return *(_data.get() + index);
 		}
 
-		CharReference front() nonconst THROW_STD_EXCEPT
+		CharReference front() nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			_range_check(0);//UB
 			return *(_data.get());
 		}
 
-		CharReference back() nonconst THROW_STD_EXCEPT
+		CharReference back() nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			_range_check(_size - 1);
 			return *(_data.get() + _size - 1);
 		}
 
-		CharSharedPtrType c_str() const THROW_STD_EXCEPT
+		CharSharedPtrType c_str() const THROW_EXCEPT
 		{
 			return helpers::get_copy_str(_data.get(), _size, true);
 		}
 
 	public: //Iterators
-		Iterator begin() nonconst THROW_STD_EXCEPT
+		Iterator begin() nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			return Iterator(this, _data.get());
 		}
 
-		Iterator end() nonconst THROW_STD_EXCEPT
+		Iterator end() nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			if (_size == 0)
@@ -731,7 +706,7 @@ namespace cildhdi
 			return _size == 0;
 		}
 
-		void resize(size_t size, CharType ch = CharType()) nonconst THROW_STD_EXCEPT
+		void resize(size_t size, CharType ch = CharType()) nonconst THROW_EXCEPT
 		{
 			if (size < _size)
 			{
@@ -755,7 +730,7 @@ namespace cildhdi
 			}
 		}
 
-		void reserve(size_t size) nonconst THROW_STD_EXCEPT
+		void reserve(size_t size) nonconst THROW_EXCEPT
 		{
 			//_call_non_const_func();
 			if (size > _capacity)
@@ -766,7 +741,7 @@ namespace cildhdi
 		}
 
 	public: //Operations
-		void reset() nonconst THROW_STD_EXCEPT
+		void reset() nonconst THROW_EXCEPT
 		{
 			_data.~shared_ptr();
 			_data = helpers::make_chars_shared_ptr<CharType>(nullptr);
@@ -775,13 +750,13 @@ namespace cildhdi
 			_cur_arg_index = 1;
 		}
 
-		void clear() nonconst THROW_STD_EXCEPT
+		void clear() nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			_size = 0;
 		}
 
-		StringBase& append(CharType ch, size_t count = 1) nonconst THROW_STD_EXCEPT
+		StringBase& append(CharType ch, size_t count = 1) nonconst THROW_EXCEPT
 		{
 			if (count == 0) return *this;
 			_call_non_const_func();
@@ -795,7 +770,7 @@ namespace cildhdi
 			return *this;
 		}
 
-		StringBase& append(const StringBase& str) nonconst THROW_STD_EXCEPT
+		StringBase& append(const StringBase& str) nonconst THROW_EXCEPT
 		{
 			if (str.empty()) return *this;
 			_call_non_const_func();
@@ -806,7 +781,7 @@ namespace cildhdi
 			return *this;
 		}
 
-		StringBase& append(const StringBase& str, size_t pos, size_t count) nonconst THROW_STD_EXCEPT
+		StringBase& append(const StringBase& str, size_t pos, size_t count) nonconst THROW_EXCEPT
 		{
 			if (str.empty() || count == 0) return *this;
 			_call_non_const_func();
@@ -819,20 +794,20 @@ namespace cildhdi
 			return *this;
 		}
 
-		void push_back(CharType ch) nonconst THROW_STD_EXCEPT
+		void push_back(CharType ch) nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			append(ch);
 		}
 
-		void pop_back() nonconst THROW_STD_EXCEPT
+		void pop_back() nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			helpers::expect<errors::OutOfRange>(_size != 0);
 			--_size;
 		}
 
-		int compare(const StringBase& str) const THROW_STD_EXCEPT
+		int compare(const StringBase& str) const THROW_EXCEPT
 		{
 			if (_data.get() == str._data.get())
 				return 0;
@@ -848,7 +823,7 @@ namespace cildhdi
 			return 0;
 		}
 
-		StringBase& replace(size_t pos, size_t count, const StringBase& str) nonconst THROW_STD_EXCEPT
+		StringBase& replace(size_t pos, size_t count, const StringBase& str) nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			_range_check(pos);
@@ -857,7 +832,7 @@ namespace cildhdi
 			return *this;
 		}
 
-		void swap(StringBase& other)nonconst THROW_STD_EXCEPT
+		void swap(StringBase& other)nonconst THROW_EXCEPT
 		{
 			if (_data.get() == other._data.get()) return;
 			_call_non_const_func();
@@ -868,7 +843,7 @@ namespace cildhdi
 			_data.swap(other._data);
 		}
 
-		StringBase substr(size_t pos = 0, size_t count = npos)const THROW_STD_EXCEPT
+		StringBase substr(size_t pos = 0, size_t count = npos)const THROW_EXCEPT
 		{
 			StringBase str;
 			if (_size == 0 || count == 0) return str;
@@ -876,7 +851,7 @@ namespace cildhdi
 			return str;
 		}
 
-		size_t copy(Char* dest, size_t count, size_t pos = 0) const THROW_STD_EXCEPT
+		size_t copy(Char* dest, size_t count, size_t pos = 0) const THROW_EXCEPT
 		{
 			if (count == npos || pos + count > _size)
 				count = _size - pos;
@@ -885,32 +860,33 @@ namespace cildhdi
 			return count;
 		}
 
-		std::vector<StringBase> split(const CharType* delim) const THROW_STD_EXCEPT
+		std::vector<StringBase> split(const CharType* delim) const THROW_EXCEPT
 		{
 			auto cstr = c_str();
-			CharPtrType token = helpers::strtok_t<CharType>(cstr.get(), delim);
+			Char* buffer;
+			CharPtrType token = helpers::strtok_t<CharType>(cstr.get(), delim, &buffer);
 			std::vector<StringBase> res;
 			while (token != nullptr)
 			{
 				res.emplace_back(token);
-				token = helpers::strtok_t<CharType>(nullptr, delim);
+				token = helpers::strtok_t<CharType>(nullptr, delim, &buffer);
 			}
 			return res;
 		}
 
-		StringBase left(size_t count) const THROW_STD_EXCEPT
+		StringBase left(size_t count) const THROW_EXCEPT
 		{
 			_range_check(count - 1);
 			return StringBase(_data.get(), count);
 		}
 
-		StringBase right(size_t count) const THROW_STD_EXCEPT
+		StringBase right(size_t count) const THROW_EXCEPT
 		{
 			_range_check(count - 1);
 			return StringBase(_data.get() + _size - count, count);
 		}
 
-		StringBase& insert(size_t index, size_t count, CharType ch) nonconst THROW_STD_EXCEPT
+		StringBase& insert(size_t index, size_t count, CharType ch) nonconst THROW_EXCEPT
 		{
 			helpers::expect<errors::OutOfRange>(index <= _size);
 			_call_non_const_func();
@@ -922,7 +898,7 @@ namespace cildhdi
 			return *this;
 		}
 
-		StringBase& insert(size_t index, const Char* str, size_t size = npos) nonconst THROW_STD_EXCEPT
+		StringBase& insert(size_t index, const Char* str, size_t size = npos) nonconst THROW_EXCEPT
 		{
 			helpers::expect<errors::OutOfRange>(index <= _size);
 			_call_non_const_func();
@@ -934,7 +910,7 @@ namespace cildhdi
 			return *this;
 		}
 
-		StringBase& insert(size_t index, const StringBase& str, size_t index_str = 0, size_t count = npos) nonconst THROW_STD_EXCEPT
+		StringBase& insert(size_t index, const StringBase& str, size_t index_str = 0, size_t count = npos) nonconst THROW_EXCEPT
 		{
 			helpers::expect<errors::OutOfRange>(index <= _size);
 			str._range_check(index_str);
@@ -942,12 +918,12 @@ namespace cildhdi
 			return insert(index, str._data.get() + index_str, count == npos ? str.size() : count);
 		}
 
-		StringBase& insert(Iterator pos, size_t count, CharType ch) nonconst THROW_STD_EXCEPT
+		StringBase& insert(Iterator pos, size_t count, CharType ch) nonconst THROW_EXCEPT
 		{
 			return insert(std::distance(begin(), pos), count, ch);
 		}
 
-		StringBase & erase(size_t index = 0, size_t count = npos) nonconst THROW_STD_EXCEPT
+		StringBase & erase(size_t index = 0, size_t count = npos) nonconst THROW_EXCEPT
 		{
 			if (count == 0) return *this;
 			helpers::expect<errors::OutOfRange>(index <= _size && index + count <= _size);
@@ -957,7 +933,7 @@ namespace cildhdi
 			return *this;
 		}
 
-		Iterator erase(Iterator pos) nonconst THROW_STD_EXCEPT
+		Iterator erase(Iterator pos) nonconst THROW_EXCEPT
 		{
 			pos._range_check(0);
 			size_t index = std::distance(begin(), pos);
@@ -965,7 +941,7 @@ namespace cildhdi
 			return Iterator(this, _data.get() + index);
 		}
 
-		Iterator erase(Iterator first, Iterator last) nonconst THROW_STD_EXCEPT
+		Iterator erase(Iterator first, Iterator last) nonconst THROW_EXCEPT
 		{
 			first._range_check(0);
 			size_t index = std::distance(begin(), first);
@@ -974,8 +950,8 @@ namespace cildhdi
 			return Iterator(this, _data.get() + index);
 		}
 
-	public: //tranfer
-		StringBase to_upper() const THROW_STD_EXCEPT
+	public: //transfer
+		StringBase to_upper() const THROW_EXCEPT
 		{
 			StringBase s(*this);
 			std::for_each(s.begin(), s.end(), [](char& c)
@@ -988,7 +964,7 @@ namespace cildhdi
 			return s;
 		}
 
-		StringBase to_lower() const THROW_STD_EXCEPT
+		StringBase to_lower() const THROW_EXCEPT
 		{
 			StringBase s(*this);
 			std::for_each(s.begin(), s.end(), [](char& c)
@@ -1001,8 +977,15 @@ namespace cildhdi
 			return s;
 		}
 
+		void set_max_arg_index(size_t max_index) nonconst
+		{
+			if (max_index < 10)
+				return;
+			_max_arg_index = max_index;
+		}
+
 		template<typename T>
-		StringBase arg(T value) const THROW_STD_EXCEPT
+		StringBase arg(T value) const THROW_EXCEPT
 		{
 			if (_cur_arg_index == 0) return *this;
 			int index = _cur_arg_index;
@@ -1012,7 +995,7 @@ namespace cildhdi
 			StringBase fmt_begin(begin_c);
 			StringBase fmt_end(end_c);
 			size_t fmt_tag_begin, fmt_tag_end;
-			while (index < 100)
+			while (index < static_cast<int>(_max_arg_index))
 			{
 				StringBase si = to_str(index);
 				str = fmt_begin + si + fmt_end;
@@ -1024,7 +1007,7 @@ namespace cildhdi
 				}
 				index++;
 			}
-			if (index == 100)
+			if (index == static_cast<int>(_max_arg_index))
 			{
 				str = *this;
 				str._cur_arg_index = 0;
@@ -1037,14 +1020,14 @@ namespace cildhdi
 			return str;
 		}
 
-		template<typename T, typename ...Types>
-		StringBase arg(T t, Types... args) const THROW_STD_EXCEPT
+		template<typename T, typename... Types>
+		StringBase arg(T t, Types... args) const THROW_EXCEPT
 		{
-			return arg<T>(t).arg<Types...>(args...);
+			return arg<T>(t).arg(args...);
 		}
 
 		template<typename T, typename std::enable_if<std::is_arithmetic<T>::value, int>::type = 0>
-		T to() const THROW_STD_EXCEPT
+		T to() const THROW_EXCEPT
 		{
 			constexpr bool is_int = std::is_same<T, int>::value;
 #if is_int
@@ -1056,28 +1039,28 @@ namespace cildhdi
 
 
 	public: //operators
-		CharReference operator[](size_t index) nonconst THROW_STD_EXCEPT
+		CharReference operator[](size_t index) nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			_range_check(index);
 			return *(_data.get() + index);
 		}
 
-		StringBase& operator+=(const StringBase& str) nonconst THROW_STD_EXCEPT
+		StringBase& operator+=(const StringBase& str) nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			append(str);
 			return *this;
 		}
 
-		StringBase& operator+=(CharType ch) nonconst THROW_STD_EXCEPT
+		StringBase& operator+=(CharType ch) nonconst THROW_EXCEPT
 		{
 			_call_non_const_func();
 			append(ch);
 			return *this;
 		}
 
-		StringBase& operator=(const StringBase& other) nonconst THROW_STD_EXCEPT
+		StringBase& operator=(const StringBase& other) nonconst THROW_EXCEPT
 		{
 			reset();
 			_data = other._data;
@@ -1087,6 +1070,13 @@ namespace cildhdi
 			return *this;
 		}
 
+		StringBase& operator=(StringBase&& other) nonconst THROW_EXCEPT
+		{
+			reset();
+			swap(other);
+		}
+
+		friend std::basic_ostream<Char>& operator<< <Char>(std::basic_ostream<Char>& os, const StringBase& s);
 	public: //Search
 		size_t find(const StringBase& str, size_t pos = 0) const
 		{
@@ -1110,7 +1100,7 @@ namespace cildhdi
 				return res - s.get();
 		}
 
-		size_t find_first_of(const StringBase& str, size_t pos = 0)const THROW_STD_EXCEPT
+		size_t find_first_of(const StringBase& str, size_t pos = 0)const THROW_EXCEPT
 		{
 			auto it = std::find_first_of(begin() + pos, end(), str.begin(), str.end());
 			if (it == end())
@@ -1119,7 +1109,7 @@ namespace cildhdi
 				return std::distance(begin(), it);
 		}
 
-		size_t find_first_of(CharType ch, size_t pos = 0)const THROW_STD_EXCEPT
+		size_t find_first_of(CharType ch, size_t pos = 0)const THROW_EXCEPT
 		{
 			auto it = std::find(begin() + pos, end(), ch);
 			if (it == end())
@@ -1132,7 +1122,7 @@ namespace cildhdi
 		static StringBase to_str(V value);
 
 	private:
-		inline void _call_non_const_func() nonconst THROW_STD_EXCEPT
+		inline void _call_non_const_func() nonconst THROW_EXCEPT
 		{
 			if (!_data.unique())
 			{
@@ -1152,7 +1142,7 @@ namespace cildhdi
 			return new_capacity;
 		}
 
-		INLINE void _range_check(int index) const THROW_STD_EXCEPT
+		INLINE void _range_check(int index) const THROW_EXCEPT
 		{
 			helpers::expect<errors::OutOfRange>(index < static_cast<int>(_size) && index >= 0);
 		}
@@ -1162,10 +1152,15 @@ namespace cildhdi
 		size_t _capacity;
 		size_t _cur_arg_index = 1;
 		const double _expand_proportion = 1.5;
+		size_t _max_arg_index = 100;
 		static_assert(std::is_same<CharType, char>::value || std::is_same<CharType, wchar_t>::value, "unsupported type: Char.");
 	public:
-		static const size_t npos = static_cast<size_t>(-1);
+		static const size_t npos;
 	};
+
+
+	template<typename Char>
+	const size_t StringBase<Char>::npos = static_cast<size_t>(-1);
 
 	template<typename Char>
 	template<typename V>
@@ -1179,7 +1174,7 @@ namespace cildhdi
 	std::basic_ostream<Char>& operator<<(std::basic_ostream<Char>& os, const StringBase<Char>& s)
 	{
 		for (size_t i = 0; i < s.size(); i++)
-			os << s.at(i);
+			os << *(s._data.get() + i);
 		return os;
 	}
 
@@ -1194,7 +1189,7 @@ namespace cildhdi
 	}
 
 	template<typename Char>
-	StringBase<Char> operator+(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	StringBase<Char> operator+(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_EXCEPT
 	{
 		auto res = lhs;
 		res.append(rhs);
@@ -1202,7 +1197,7 @@ namespace cildhdi
 	}
 
 	template<typename Char>
-	StringBase<Char> operator+(const StringBase<Char>& lhs, Char rhs) THROW_STD_EXCEPT
+	StringBase<Char> operator+(const StringBase<Char>& lhs, Char rhs) THROW_EXCEPT
 	{
 		auto res = lhs;
 		res.append(rhs);
@@ -1210,7 +1205,7 @@ namespace cildhdi
 	}
 
 	template<typename Char>
-	StringBase<Char> operator+(Char lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	StringBase<Char> operator+(Char lhs, const StringBase<Char>& rhs) THROW_EXCEPT
 	{
 		StringBase<Char> res;
 		res.append(lhs);
@@ -1219,37 +1214,37 @@ namespace cildhdi
 	}
 
 	template<typename Char>
-	bool operator==(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	bool operator==(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_EXCEPT
 	{
 		return lhs.compare(rhs) == 0;
 	}
 
 	template<typename Char>
-	bool operator!=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	bool operator!=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_EXCEPT
 	{
 		return !(lhs == rhs);
 	}
 
 	template<typename Char>
-	bool operator<(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	bool operator<(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_EXCEPT
 	{
 		return lhs.compare(rhs) < 0;
 	}
 
 	template<typename Char>
-	bool operator<=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	bool operator<=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_EXCEPT
 	{
 		return lhs.compare(rhs) <= 0;
 	}
 
 	template<typename Char>
-	bool operator>(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	bool operator>(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_EXCEPT
 	{
 		return lhs.compare(rhs) > 0;
 	}
 
 	template<typename Char>
-	bool operator>=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_STD_EXCEPT
+	bool operator>=(const StringBase<Char>& lhs, const StringBase<Char>& rhs) THROW_EXCEPT
 	{
 		return lhs.compare(rhs) >= 0;
 	}
@@ -1257,6 +1252,6 @@ namespace cildhdi
 	using String = StringBase<char>;
 	using WString = StringBase<wchar_t>;
 
-} //namespace cildhdi
+} //namespace cl
 
 #endif
