@@ -33,6 +33,11 @@ FileName: String.h
 #include <tuple>
 #include <functional>
 
+#define _THREAD_SAFE_STRING_
+#ifdef _THREAD_SAFE_STRING_
+#include <mutex>
+#endif
+
 #define DECLARE_ERROR(error_name, base_class_name)                                                             \
 	class error_name : public base_class_name                                                                  \
 	{                                                                                                          \
@@ -77,6 +82,7 @@ FileName: String.h
 #define DECLARE_FLOAT_NUMBER_PARSE(numeric_type, name) DECLARE_NUMERIC_PARSE(numeric_type, name, str, &end)
 #define DECLARE_INTEGRAL_NUMBER_PARSE(numeric_type, name, base) DECLARE_NUMERIC_PARSE(numeric_type, name, str, &end, base)
 #define nonconst
+#define _SPACE_
 //ISO C++1z does not allow dynamic exception specifications
 #define THROW_EXCEPT /*throw(std::exception)*/
 #define WITH_CHAR_RESTRICTION , typename std::enable_if<std::is_same<char, Char>::value || std::is_same<wchar_t, Char>::value, int>::type = 0
@@ -424,7 +430,7 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	friend class StringBase<Char>;
 
   public:
-	IteratorBase() : _obj(nullptr), _position(nullptr)
+	IteratorBase() : _obj(nullptr), _position(0)
 	{
 	}
 
@@ -439,7 +445,7 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	IteratorBase operator+(typename IteratorBase::difference_type n) const THROW_EXCEPT
 	{
 		_range_check(n);
-		return IteratorBase(_obj, _position + n);
+		return IteratorBase(_obj, _obj->_data.get() + _position + n);
 	}
 
 	IteratorReference operator-=(typename IteratorBase::difference_type n) THROW_EXCEPT
@@ -452,21 +458,14 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	IteratorBase operator-(typename IteratorBase::difference_type n) const THROW_EXCEPT
 	{
 		_range_check(-n);
-		return IteratorBase(_obj, _position - n);
+		return IteratorBase(_obj, _obj->_data.get() + _position - n);
 	}
 
 	typename IteratorBase<Char>::difference_type operator-(const IteratorBase<Char> &rhs) const THROW_EXCEPT
 	{
-		if (_position == nullptr && rhs._position == nullptr)
-		{
-			return 0;
-		}
-		else
-		{
-			_nullptr_check();
-			rhs._nullptr_check();
-			_dif_obj_check(rhs);
-		}
+		_nullptr_check();
+		rhs._nullptr_check();
+		_dif_obj_check(rhs);
 		return _position - rhs._position;
 	}
 
@@ -512,7 +511,7 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	{
 		_nullptr_check();
 		_range_check(-1);
-		return IteratorBase(_obj, _position - 1);
+		return IteratorBase(_obj, _obj->_data.get() + _position - 1);
 	}
 
 	IteratorReference operator++()
@@ -527,20 +526,21 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	{
 		_nullptr_check();
 		_range_check(1);
-		return IteratorBase(_obj, _position + 1);
+		return IteratorBase(_obj, _obj->_data.get() + _position + 1);
 	}
 
 	CharReference operator*() THROW_EXCEPT
 	{
 		_nullptr_check();
 		_range_check(0);
-		return *_position;
+		_obj->_call_non_const_func();
+		return *(_obj->_data.get() + _position);
 	}
 
 	CharPtrType operator->()
 	{
 		_nullptr_check();
-		return _position;
+		return _obj->_data.get() + _position;
 	}
 
 	bool operator==(const IteratorBase &rhs) const
@@ -554,14 +554,19 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	}
 
   private:
-	IteratorBase(ObjectPtr obj_ptr, CharPtrType char_ptr) : _obj(obj_ptr), _position(char_ptr)
+	IteratorBase(ObjectPtr obj_ptr, CharPtrType char_ptr)
 	{
+		_obj = obj_ptr;
+		if (_obj != nullptr)
+			_position = std::distance(obj_ptr->_data.get(), char_ptr);
+		else
+			_position = 0;
 	}
 
 	INLINE void _range_check(typename IteratorBase::difference_type d) const THROW_EXCEPT
 	{
 		_nullptr_check();
-		typename IteratorBase::difference_type rd = std::distance(_obj->_data.get(), _position + d);
+		typename IteratorBase::difference_type rd = _position + d;
 		helpers::expect<errors::OutOfRange>(rd >= 0 && rd <= static_cast<typename IteratorBase::difference_type>(_obj->size()));
 	}
 
@@ -574,12 +579,12 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 
 	INLINE void _nullptr_check() const THROW_EXCEPT
 	{
-		helpers::expect<errors::NullPtr>(_obj != nullptr && _position != nullptr);
+		helpers::expect<errors::NullPtr>(_obj != nullptr);
 	}
 
   private:
 	ObjectPtr _obj;
-	CharPtrType _position;
+	long _position;
 };
 
 template <typename Char>
@@ -591,7 +596,116 @@ IteratorBase<Char> operator+(typename IteratorBase<Char>::difference_type n, Ite
 } //namespace iterators
 
 template <typename Char>
-std::basic_ostream<Char> &operator<<(std::basic_ostream<Char> &os, const StringBase<Char> &s);
+std::basic_ostream<Char> &operator<<(std::basic_ostream<Char> &os, const StringBase<Char> &s)
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock_guard lock(s._mutex);
+#endif
+	for (size_t i = 0; i < s.size(); i++)
+		os << *(s._data.get() + i);
+	return os;
+}
+
+template <typename Char>
+std::basic_istream<Char> &operator>>(std::basic_istream<Char> &is, StringBase<Char> &s)
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock_guard lock(s._mutex);
+#endif
+	Char buffer[1000] = {0};
+	is >> buffer;
+	StringBase<Char> str(buffer);
+	s = str;
+	return is;
+}
+
+template <typename Char>
+StringBase<Char> operator+(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock(lhs._mutex, rhs._mutex);
+#endif
+	auto res = lhs;
+	res.append(rhs);
+	return res;
+}
+
+template <typename Char>
+StringBase<Char> operator+(const StringBase<Char> &lhs, Char rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock_guard lock(lhs._mutex);
+#endif
+	auto res = lhs;
+	res.append(rhs);
+	return res;
+}
+
+template <typename Char>
+StringBase<Char> operator+(Char lhs, const StringBase<Char> &rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock_guard lock(rhs._mutex);
+#endif
+	StringBase<Char> res;
+	res.append(lhs);
+	res.append(rhs);
+	return res;
+}
+
+template <typename Char>
+bool operator==(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock(lhs._mutex, rhs._mutex);
+#endif
+	return lhs.compare(rhs) == 0;
+}
+
+template <typename Char>
+bool operator!=(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock(lhs._mutex, rhs._mutex);
+#endif
+	return !(lhs == rhs);
+}
+
+template <typename Char>
+bool operator<(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock(lhs._mutex, rhs._mutex);
+#endif
+	return lhs.compare(rhs) < 0;
+}
+
+template <typename Char>
+bool operator<=(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock(lhs._mutex, rhs._mutex);
+#endif
+	return lhs.compare(rhs) <= 0;
+}
+
+template <typename Char>
+bool operator>(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock(lhs._mutex, rhs._mutex);
+#endif
+	return lhs.compare(rhs) > 0;
+}
+
+template <typename Char>
+bool operator>=(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
+{
+#ifdef _THREAD_SAFE_STRING_
+	std::lock(lhs._mutex, rhs._mutex);
+#endif
+	return lhs.compare(rhs) >= 0;
+}
 
 template <typename Char>
 class StringBase
@@ -627,6 +741,9 @@ class StringBase
 
 	StringBase(const StringBase &other) THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(other._mutex);
+#endif
 		reset();
 		_data = other._data;
 		_size = other._size;
@@ -636,6 +753,9 @@ class StringBase
 
 	StringBase(StringBase &&other) THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(other._mutex);
+#endif
 		reset();
 		swap(other);
 	}
@@ -667,6 +787,9 @@ class StringBase
   public: //Element access
 	CharType at(size_t index) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_range_check(index);
 		CharType c = *(_data.get() + index);
 		return c;
@@ -674,6 +797,9 @@ class StringBase
 
 	CharReference at(size_t index) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		_range_check(index);
 		return *(_data.get() + index);
@@ -681,6 +807,9 @@ class StringBase
 
 	CharReference front() nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		_range_check(0); //UB
 		return *(_data.get());
@@ -688,6 +817,9 @@ class StringBase
 
 	CharReference back() nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		_range_check(_size - 1);
 		return *(_data.get() + _size - 1);
@@ -695,18 +827,27 @@ class StringBase
 
 	CharSharedPtrType c_str() const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		return helpers::get_copy_str(_data.get(), _size, true);
 	}
 
   public: //Iterators
 	Iterator begin() nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		return Iterator(this, _data.get());
 	}
 
 	Iterator end() nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		if (_size == 0)
 			return begin();
@@ -732,6 +873,9 @@ class StringBase
 
 	void resize(size_t size, CharType ch = CharType()) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		if (size < _size)
 		{
 			_size = size;
@@ -756,6 +900,9 @@ class StringBase
 
 	void reserve(size_t size) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		//_call_non_const_func();
 		if (size > _capacity)
 		{
@@ -767,6 +914,9 @@ class StringBase
   public: //Operations
 	void reset() nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_data.~shared_ptr();
 		_data = helpers::make_chars_shared_ptr<CharType>(nullptr);
 		_size = 0;
@@ -776,12 +926,18 @@ class StringBase
 
 	void clear() nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		_size = 0;
 	}
 
 	StringBase &append(CharType ch, size_t count = 1) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		if (count == 0)
 			return *this;
 		_call_non_const_func();
@@ -797,6 +953,9 @@ class StringBase
 
 	StringBase &append(const StringBase &str) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, str._mutex);
+#endif
 		if (str.empty())
 			return *this;
 		_call_non_const_func();
@@ -809,6 +968,9 @@ class StringBase
 
 	StringBase &append(const StringBase &str, size_t pos, size_t count) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, str._mutex);
+#endif
 		if (str.empty() || count == 0)
 			return *this;
 		_call_non_const_func();
@@ -824,12 +986,18 @@ class StringBase
 
 	void push_back(CharType ch) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		append(ch);
 	}
 
 	void pop_back() nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		helpers::expect<errors::OutOfRange>(_size != 0);
 		--_size;
@@ -837,6 +1005,9 @@ class StringBase
 
 	int compare(const StringBase &str) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, str._mutex);
+#endif
 		if (_data.get() == str._data.get())
 			return 0;
 		size_t lsize = size();
@@ -853,6 +1024,9 @@ class StringBase
 
 	StringBase &replace(size_t pos, size_t count, const StringBase &str) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, str._mutex);
+#endif
 		_call_non_const_func();
 		_range_check(pos);
 		count = std::min({str.size(), count, size() - pos});
@@ -862,6 +1036,9 @@ class StringBase
 
 	void swap(StringBase &other) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, other._mutex);
+#endif
 		if (_data.get() == other._data.get())
 			return;
 		_call_non_const_func();
@@ -874,6 +1051,9 @@ class StringBase
 
 	StringBase substr(size_t pos = 0, size_t count = npos) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		StringBase str;
 		if (_size == 0 || count == 0)
 			return str;
@@ -883,6 +1063,9 @@ class StringBase
 
 	size_t copy(Char *dest, size_t count, size_t pos = 0) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		if (count == npos || pos + count > _size)
 			count = _size - pos;
 		helpers::copy_str(dest, _data.get() + pos, count);
@@ -892,6 +1075,9 @@ class StringBase
 
 	std::vector<StringBase> split(const CharType *delim) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		auto cstr = c_str();
 		Char *buffer;
 		CharPtrType token = helpers::strtok_t<CharType>(cstr.get(), delim, &buffer);
@@ -906,18 +1092,27 @@ class StringBase
 
 	StringBase left(size_t count) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_range_check(count - 1);
 		return StringBase(_data.get(), count);
 	}
 
 	StringBase right(size_t count) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_range_check(count - 1);
 		return StringBase(_data.get() + _size - count, count);
 	}
 
 	StringBase &insert(size_t index, size_t count, CharType ch) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		helpers::expect<errors::OutOfRange>(index <= _size);
 		_call_non_const_func();
 		reserve(_get_expand_size(count));
@@ -930,6 +1125,9 @@ class StringBase
 
 	StringBase &insert(size_t index, const Char *str, size_t size = npos) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		helpers::expect<errors::OutOfRange>(index <= _size);
 		_call_non_const_func();
 		size_t count = (size == npos ? helpers::strlen_t(str) : size);
@@ -942,6 +1140,9 @@ class StringBase
 
 	StringBase &insert(size_t index, const StringBase &str, size_t index_str = 0, size_t count = npos) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, str._mutex);
+#endif
 		helpers::expect<errors::OutOfRange>(index <= _size);
 		str._range_check(index_str);
 		_call_non_const_func();
@@ -950,11 +1151,17 @@ class StringBase
 
 	StringBase &insert(Iterator pos, size_t count, CharType ch) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		return insert(std::distance(begin(), pos), count, ch);
 	}
 
 	StringBase &erase(size_t index = 0, size_t count = npos) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		if (count == 0)
 			return *this;
 		helpers::expect<errors::OutOfRange>(index <= _size && index + count <= _size);
@@ -966,6 +1173,9 @@ class StringBase
 
 	Iterator erase(Iterator pos) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		pos._range_check(0);
 		size_t index = std::distance(begin(), pos);
 		erase(index, 1);
@@ -974,6 +1184,9 @@ class StringBase
 
 	Iterator erase(Iterator first, Iterator last) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		first._range_check(0);
 		size_t index = std::distance(begin(), first);
 		size_t count = std::distance(first, last);
@@ -984,6 +1197,9 @@ class StringBase
   public: //transfer
 	StringBase to_upper() const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		StringBase s(*this);
 		std::for_each(s.begin(), s.end(), [](char &c) {
 			if (std::isalpha(c) && std::islower(c))
@@ -996,6 +1212,9 @@ class StringBase
 
 	StringBase to_lower() const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		StringBase s(*this);
 		std::for_each(s.begin(), s.end(), [](char &c) {
 			if (std::isalpha(c) && std::isupper(c))
@@ -1008,6 +1227,9 @@ class StringBase
 
 	void set_max_arg_index(size_t max_index) nonconst
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		if (max_index < 10)
 			return;
 		_max_arg_index = max_index;
@@ -1016,6 +1238,9 @@ class StringBase
 	template <typename T>
 	StringBase arg(T value) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		if (_cur_arg_index == 0)
 			return *this;
 		int index = _cur_arg_index;
@@ -1059,6 +1284,9 @@ class StringBase
 	template <typename T, typename std::enable_if<std::is_arithmetic<T>::value, int>::type = 0>
 	T to() const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		constexpr bool is_int = std::is_same<T, int>::value;
 #if is_int
 		return helpers::part_specialization_aton<long>::template aton<CharType>(c_str());
@@ -1070,6 +1298,9 @@ class StringBase
   public: //operators
 	CharReference operator[](size_t index) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		_range_check(index);
 		return *(_data.get() + index);
@@ -1077,6 +1308,9 @@ class StringBase
 
 	StringBase &operator+=(const StringBase &str) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, str._mutex);
+#endif
 		_call_non_const_func();
 		append(str);
 		return *this;
@@ -1084,6 +1318,9 @@ class StringBase
 
 	StringBase &operator+=(CharType ch) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		_call_non_const_func();
 		append(ch);
 		return *this;
@@ -1091,6 +1328,9 @@ class StringBase
 
 	StringBase &operator=(const StringBase &other) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, other._mutex);
+#endif
 		reset();
 		_data = other._data;
 		_size = other._size;
@@ -1101,15 +1341,31 @@ class StringBase
 
 	StringBase &operator=(StringBase &&other) nonconst THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, other._mutex);
+#endif
 		reset();
 		swap(other);
 	}
 
 	friend std::basic_ostream<Char> &operator<<<Char>(std::basic_ostream<Char> &os, const StringBase &s);
+	friend std::basic_istream<Char> &operator>><Char>(std::basic_istream<Char> &is, StringBase &s);
+	friend StringBase operator+<Char>(const StringBase &lhs, const StringBase &rhs) THROW_EXCEPT;
+	friend StringBase operator+<Char>(const StringBase &lhs, Char rhs) THROW_EXCEPT;
+	friend StringBase operator+<Char>(Char lhs, const StringBase &rhs) THROW_EXCEPT;
+	friend bool operator==<Char>(const StringBase &lhs, const StringBase &rhs) THROW_EXCEPT;
+	friend bool operator!=<Char>(const StringBase &lhs, const StringBase &rhs) THROW_EXCEPT;
+	friend bool operator<_SPACE_<Char>(const StringBase &lhs, const StringBase &rhs) THROW_EXCEPT;
+	friend bool operator<=<Char>(const StringBase &lhs, const StringBase &rhs) THROW_EXCEPT;
+	friend bool operator><Char>(const StringBase &lhs, const StringBase &rhs) THROW_EXCEPT;
+	friend bool operator>=<Char>(const StringBase &lhs, const StringBase &rhs) THROW_EXCEPT;
 
   public: //Search
 	size_t find(const StringBase &str, size_t pos = 0) const
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, str._mutex);
+#endif
 		auto s = c_str();
 		auto t = str.c_str();
 		CharPtrType res = helpers::strstr_t<CharType>(s.get() + pos, t.get());
@@ -1121,6 +1377,9 @@ class StringBase
 
 	size_t find(const CharType *str, size_t pos, size_t count) const
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		auto s = c_str();
 		auto t = StringBase(str, count).c_str();
 		CharPtrType res = helpers::strstr_t<CharType>(s.get() + pos, t.get());
@@ -1132,6 +1391,9 @@ class StringBase
 
 	size_t find_first_of(const StringBase &str, size_t pos = 0) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock(_mutex, str._mutex);
+#endif
 		auto it = std::find_first_of(begin() + pos, end(), str.begin(), str.end());
 		if (it == end())
 			return npos;
@@ -1141,6 +1403,9 @@ class StringBase
 
 	size_t find_first_of(CharType ch, size_t pos = 0) const THROW_EXCEPT
 	{
+#ifdef _THREAD_SAFE_STRING_
+		std::lock_guard lock(_mutex);
+#endif
 		auto it = std::find(begin() + pos, end(), ch);
 		if (it == end())
 			return npos;
@@ -1151,7 +1416,18 @@ class StringBase
   public: //Statics
 	template <typename V>
 	static StringBase to_str(V value);
+#ifdef _THREAD_SAFE_STRING_
+  public:
+	void lock()
+	{
+		_mutex.lock();
+	}
 
+	void unlock()
+	{
+		_mutex.unlock();
+	}
+#endif
   private:
 	inline void _call_non_const_func() nonconst THROW_EXCEPT
 	{
@@ -1188,7 +1464,9 @@ class StringBase
 	const double _expand_proportion = 1.5;
 	size_t _max_arg_index = 100;
 	static_assert(std::is_same<CharType, char>::value || std::is_same<CharType, wchar_t>::value, "unsupported type: Char.");
-
+#ifdef _THREAD_SAFE_STRING_
+	mutable std::recursive_mutex _mutex;
+#endif
   public:
 	static const size_t npos;
 };
@@ -1202,85 +1480,6 @@ StringBase<Char> StringBase<Char>::to_str(V value)
 {
 	StringBase str(value);
 	return str;
-}
-
-template <typename Char>
-std::basic_ostream<Char> &operator<<(std::basic_ostream<Char> &os, const StringBase<Char> &s)
-{
-	for (size_t i = 0; i < s.size(); i++)
-		os << *(s._data.get() + i);
-	return os;
-}
-
-template <typename Char>
-std::basic_istream<Char> &operator>>(std::basic_istream<Char> &is, StringBase<Char> &s)
-{
-	Char buffer[1000] = {0};
-	is >> buffer;
-	StringBase<Char> str(buffer);
-	s = str;
-	return is;
-}
-
-template <typename Char>
-StringBase<Char> operator+(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
-{
-	auto res = lhs;
-	res.append(rhs);
-	return res;
-}
-
-template <typename Char>
-StringBase<Char> operator+(const StringBase<Char> &lhs, Char rhs) THROW_EXCEPT
-{
-	auto res = lhs;
-	res.append(rhs);
-	return res;
-}
-
-template <typename Char>
-StringBase<Char> operator+(Char lhs, const StringBase<Char> &rhs) THROW_EXCEPT
-{
-	StringBase<Char> res;
-	res.append(lhs);
-	res.append(rhs);
-	return res;
-}
-
-template <typename Char>
-bool operator==(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
-{
-	return lhs.compare(rhs) == 0;
-}
-
-template <typename Char>
-bool operator!=(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
-{
-	return !(lhs == rhs);
-}
-
-template <typename Char>
-bool operator<(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
-{
-	return lhs.compare(rhs) < 0;
-}
-
-template <typename Char>
-bool operator<=(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
-{
-	return lhs.compare(rhs) <= 0;
-}
-
-template <typename Char>
-bool operator>(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
-{
-	return lhs.compare(rhs) > 0;
-}
-
-template <typename Char>
-bool operator>=(const StringBase<Char> &lhs, const StringBase<Char> &rhs) THROW_EXCEPT
-{
-	return lhs.compare(rhs) >= 0;
 }
 
 using String = StringBase<char>;
