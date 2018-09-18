@@ -430,7 +430,7 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	friend class StringBase<Char>;
 
   public:
-	IteratorBase() : _obj(nullptr), _position(0)
+	IteratorBase() : _obj(nullptr), _position(nullptr)
 	{
 	}
 
@@ -445,7 +445,7 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	IteratorBase operator+(typename IteratorBase::difference_type n) const THROW_EXCEPT
 	{
 		_range_check(n);
-		return IteratorBase(_obj, _obj->_data.get() + _position + n);
+		return IteratorBase(_obj, _position + n);
 	}
 
 	IteratorReference operator-=(typename IteratorBase::difference_type n) THROW_EXCEPT
@@ -458,14 +458,21 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	IteratorBase operator-(typename IteratorBase::difference_type n) const THROW_EXCEPT
 	{
 		_range_check(-n);
-		return IteratorBase(_obj, _obj->_data.get() + _position - n);
+		return IteratorBase(_obj, _position - n);
 	}
 
 	typename IteratorBase<Char>::difference_type operator-(const IteratorBase<Char> &rhs) const THROW_EXCEPT
 	{
-		_nullptr_check();
-		rhs._nullptr_check();
-		_dif_obj_check(rhs);
+		if (_position == nullptr && rhs._position == nullptr)
+		{
+			return 0;
+		}
+		else
+		{
+			_nullptr_check();
+			rhs._nullptr_check();
+			_dif_obj_check(rhs);
+		}
 		return _position - rhs._position;
 	}
 
@@ -511,7 +518,7 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	{
 		_nullptr_check();
 		_range_check(-1);
-		return IteratorBase(_obj, _obj->_data.get() + _position - 1);
+		return IteratorBase(_obj, _position - 1);
 	}
 
 	IteratorReference operator++()
@@ -526,21 +533,20 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	{
 		_nullptr_check();
 		_range_check(1);
-		return IteratorBase(_obj, _obj->_data.get() + _position + 1);
+		return IteratorBase(_obj, _position + 1);
 	}
 
 	CharReference operator*() THROW_EXCEPT
 	{
 		_nullptr_check();
 		_range_check(0);
-		_obj->_call_non_const_func();
-		return *(_obj->_data.get() + _position);
+		return *_position;
 	}
 
 	CharPtrType operator->()
 	{
 		_nullptr_check();
-		return _obj->_data.get() + _position;
+		return _position;
 	}
 
 	bool operator==(const IteratorBase &rhs) const
@@ -554,19 +560,14 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 	}
 
   private:
-	IteratorBase(ObjectPtr obj_ptr, CharPtrType char_ptr)
+	IteratorBase(ObjectPtr obj_ptr, CharPtrType char_ptr) : _obj(obj_ptr), _position(char_ptr)
 	{
-		_obj = obj_ptr;
-		if (_obj != nullptr)
-			_position = std::distance(obj_ptr->_data.get(), char_ptr);
-		else
-			_position = 0;
 	}
 
 	INLINE void _range_check(typename IteratorBase::difference_type d) const THROW_EXCEPT
 	{
 		_nullptr_check();
-		typename IteratorBase::difference_type rd = _position + d;
+		typename IteratorBase::difference_type rd = std::distance(_obj->_data.get(), _position + d);
 		helpers::expect<errors::OutOfRange>(rd >= 0 && rd <= static_cast<typename IteratorBase::difference_type>(_obj->size()));
 	}
 
@@ -579,12 +580,12 @@ class IteratorBase : public std::iterator<std::random_access_iterator_tag, Char>
 
 	INLINE void _nullptr_check() const THROW_EXCEPT
 	{
-		helpers::expect<errors::NullPtr>(_obj != nullptr);
+		helpers::expect<errors::NullPtr>(_obj != nullptr && _position != nullptr);
 	}
 
   private:
 	ObjectPtr _obj;
-	long _position;
+	CharPtrType _position;
 };
 
 template <typename Char>
