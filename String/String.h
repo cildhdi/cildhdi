@@ -33,7 +33,6 @@ FileName: String.h
 #include <tuple>
 #include <functional>
 
-#define _THREAD_SAFE_STRING_
 #ifdef _THREAD_SAFE_STRING_
 #include <mutex>
 #endif
