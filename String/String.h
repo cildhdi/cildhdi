@@ -1434,6 +1434,7 @@ class StringBase
 		if (!_data.unique())
 		{
 			_data = helpers::get_copy_str<CharType>(_data.get(), _size, false);
+			_capacity = _size;
 		}
 	}
 
