@@ -726,7 +726,7 @@ class StringBase
 	}
 
 	template <typename V>
-	StringBase(V value, typename std::enable_if<std::is_arithmetic<V>::value>::type * = 0) THROW_EXCEPT
+	explicit StringBase(V value, typename std::enable_if<std::is_arithmetic<V>::value>::type * = 0) THROW_EXCEPT
 	{
 		reset();
 		CharType format[5] = {0};
