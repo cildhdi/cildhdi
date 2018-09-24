@@ -32,6 +32,7 @@ FileName: String.h
 #include <cwchar>
 #include <tuple>
 #include <functional>
+#include <algorithm>
 
 #ifdef _THREAD_SAFE_STRING_
 #include <mutex>
