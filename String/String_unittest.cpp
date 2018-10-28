@@ -3,6 +3,8 @@
 #include <string>
 #include <gtest/gtest.h>
 #include <random>
+#include <thread>
+#include <chrono>
 #include "String.h"
 
 #ifdef _DEBUG
@@ -34,11 +36,12 @@ std::basic_string<Char> get_rand_str()
 
 namespace
 {
-	using namespace cildhdi;
+	using namespace cl;
+
 	TEST(String, Constructor)
 	{
 		{
-			cildhdi::String str;
+			cl::String str;
 			EXPECT_EQ(0, str.size());
 			EXPECT_EQ(0, str.capacity());
 			EXPECT_STREQ("", str.c_str().get());
@@ -49,7 +52,7 @@ namespace
 			while (i--)
 			{
 				auto rstr = get_rand_str();
-				cildhdi::String str(rstr.c_str());
+				cl::String str(rstr.c_str());
 				EXPECT_STREQ(rstr.c_str(), str.c_str().get());
 			}
 		}
@@ -61,7 +64,7 @@ namespace
 				auto rstr = get_rand_str();
 				std::uniform_int_distribution<> ld(0, rstr.size());
 				size_t rl = ld(gen);
-				cildhdi::String str(rstr.c_str(), rl);
+				cl::String str(rstr.c_str(), rl);
 				EXPECT_STREQ(rstr.substr(0, rl).c_str(), str.c_str().get());
 			}
 		}
@@ -71,9 +74,9 @@ namespace
 			while (i--)
 			{
 				auto rstr = get_rand_str();
-				cildhdi::String str(rstr.c_str());
+				cl::String str(rstr.c_str());
 				EXPECT_STREQ(rstr.c_str(), str.c_str().get());
-				cildhdi::String s(std::move(str));
+				cl::String s(std::move(str));
 				EXPECT_STREQ(rstr.c_str(), s.c_str().get());
 				EXPECT_STREQ("", str.c_str().get());
 			}
@@ -92,7 +95,7 @@ namespace
 			{
 				std::string rstr = get_rand_str();
 				if (rstr.size() < 2)continue;
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				std::uniform_int_distribution<> ld(0, rstr.size() - 1);
 				size_t index = ld(gen);
 				char ch = char_dist(gen);
@@ -111,7 +114,7 @@ namespace
 			{
 				std::string rstr = get_rand_str();
 				if (rstr.size() < 2)continue;
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				std::uniform_int_distribution<> ld(0, rstr.size() - 1);
 				size_t index = ld(gen);
 				char ch = char_dist(gen);
@@ -130,7 +133,7 @@ namespace
 			{
 				std::string rstr = get_rand_str();
 				if (rstr.size() < 2)continue;
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				std::uniform_int_distribution<> ld(0, rstr.size() - 1);
 				size_t index = ld(gen);
 				char ch = char_dist(gen);
@@ -154,7 +157,7 @@ namespace
 			{
 				std::string rstr = get_rand_str();
 				if (rstr.size() < 2)continue;
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				std::uniform_int_distribution<> ld(0, rstr.size() - 1);
 				size_t index = ld(gen);
 				char ch = char_dist(gen);
@@ -170,7 +173,7 @@ namespace
 			while (i--)
 			{
 				std::string rstr = get_rand_str();
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				std::reverse(rstr.begin(), rstr.end());
 				std::reverse(str.begin(), str.end());
 				EXPECT_STREQ(rstr.c_str(), str.c_str().get());
@@ -183,7 +186,7 @@ namespace
 			while (i--)
 			{
 				std::string rstr = get_rand_str();
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				std::sort(rstr.begin(), rstr.end());
 				std::sort(str.begin(), str.end());
 				EXPECT_STREQ(rstr.c_str(), str.c_str().get());
@@ -196,7 +199,7 @@ namespace
 			while (i--)
 			{
 				std::string rstr = get_rand_str();
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				std::for_each(str.begin(), str.end(), [](char& c)
 				{
 					c++;
@@ -217,7 +220,7 @@ namespace
 			while (i--)
 			{
 				std::string rstr = get_rand_str();
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				EXPECT_EQ(rstr.size(), str.size());
 			}
 		}
@@ -230,7 +233,7 @@ namespace
 			while (i--)
 			{
 				std::string rstr = get_rand_str();
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				EXPECT_EQ(rstr.empty(), str.empty());
 			}
 		}
@@ -243,7 +246,7 @@ namespace
 			while (i--)
 			{
 				std::string rstr = get_rand_str();
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				char ch = char_dist(gen);
 				std::uniform_int_distribution<> rs(2, rstr.size() + 10);
 				size_t ns = rs(gen);
@@ -262,7 +265,7 @@ namespace
 			{
 				std::string rstr = get_rand_str();
 				if (rstr.size() < 2) continue;
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				str.reset();
 				EXPECT_EQ(0, str.size());
 				EXPECT_EQ(0, str.capacity());
@@ -278,7 +281,7 @@ namespace
 			{
 				std::string rstr = get_rand_str();
 				if (rstr.size() < 2) continue;
-				cildhdi::String str = rstr.c_str();
+				cl::String str = rstr.c_str();
 				EXPECT_NE(0, str.size());
 				EXPECT_NE(0, str.capacity());
 				str.clear();
@@ -288,10 +291,6 @@ namespace
 		}
 	}
 
-	TEST(String, AppendTest)
-	{
-
-	}
 
 	TEST(String, FindTest)
 	{
@@ -299,7 +298,7 @@ namespace
 			int i = lp;
 			while (i--)
 			{
-				cildhdi::String str("0123456");
+				cl::String str("0123456");
 				for (size_t j = 0; j < 7; j++)
 				{
 					EXPECT_EQ(j, str.find(std::to_string(j).c_str()));
@@ -311,22 +310,12 @@ namespace
 		}
 	}
 
-	TEST(String, ArgTest)
-	{
-		{
-			std::cout << cildhdi::String("{%5}:{%1} is a {%2}, but {%3} is a {%4}.").arg("he", "sb", "yl", "sg", 123) << std::endl;
-		}
-	}
-	using namespace cildhdi;
+
 	TEST(String, SplitTest)
 	{
 		{
 			WString str = L"A bird came down the walk";
 			auto vs = str.split(L" ");
-			for (auto& s : vs)
-			{
-				std::wcout << s << std::endl;
-			}
 		}
 	}
 
@@ -334,14 +323,46 @@ namespace
 	{
 		{
 			String str = "47.328";
-			std::cout << str.to<long double>();
+			EXPECT_DOUBLE_EQ(47.328, str.to<long double>());
+		}
+	}
+
+	TEST(String, InsertTest)
+	{
+		{
+			WString s = L"01234567";
+			WString s1 = L"kkkkk";
+			s.insert(s.begin(), 1, 'c');
+		}
+	}
+
+	TEST(String, EraseTest)
+	{
+		{
+			String s = "9087654321";
+			s.erase(std::remove_if(s.begin(), s.end(), std::bind2nd(std::greater<char>(), '5')), s.end());
+		}
+	}
+
+	TEST(String, CopyTest)
+	{
+		{
+			String s = "0123456789";
+			char buf[11] = { 0 };
+			s.copy(buf, 10);
+			std::cout << buf << std::endl;
 		}
 	}
 } //namespace
+String s = "01234567890123456789\n";
+void print()
+{
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	std::cout << s;
+}
 
 int main(int argc, char** argv)
 {
 	testing::InitGoogleTest(&argc, argv);
-	RUN_ALL_TESTS();
-	return 0;
+	return RUN_ALL_TESTS();
 }
