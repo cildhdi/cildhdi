@@ -477,6 +477,27 @@ namespace ll
 			_head = buffer[0];
 			delete buffer;
 		}
+
+		void unique() noexcept
+		{
+			if (empty()) return;
+			NodeType** buffer = new NodeType*[_size], *node = _head;
+			for (SizeType i = 0; node != nullptr; node = node->_next, i++)
+				buffer[i] = node;
+			NodeType** pos = std::unique(buffer, buffer + _size, [&](const NodeType* lhs, const NodeType* rhs)
+			{
+				return (lhs->_data == rhs->_data);
+			});
+			SizeType new_size = pos - buffer;
+			for (; pos != buffer + _size; pos++)
+				delete *pos;
+			_size = new_size;
+			for (SizeType i = 0; i < _size - 1; i++)
+				buffer[i]->_next = buffer[i + 1];
+			buffer[_size - 1]->_next = nullptr;
+			_head = buffer[0];
+			delete buffer;
+		}
 	};
 }
 
