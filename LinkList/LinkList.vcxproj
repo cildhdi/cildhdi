@@ -151,10 +151,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="LinkList.cpp" />
+    <ClInclude Include="LinkList.h" />
+    <ClInclude Include="StudentMgr.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LinkList.h" />
+    <ClCompile Include="Score.cpp" />
+    <ClCompile Include="StudentMgr.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

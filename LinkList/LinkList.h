@@ -77,6 +77,14 @@ namespace ll
 				throw std::out_of_range("invalid iterator");
 		}
 
+		T* operator->()
+		{
+			if (valid())
+				return &(_node->_data);
+			else
+				throw std::out_of_range("invalid iterator");
+		}
+
 		LinkListIterator operator++(int)
 		{
 			if (valid())
@@ -212,6 +220,11 @@ namespace ll
 		bool empty() const noexcept
 		{
 			return _size == 0;
+		}
+
+		SizeType size()
+		{
+			return _size;
 		}
 	public: //ÐÞ¸Ä
 		void clear() noexcept
