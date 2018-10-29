@@ -155,7 +155,7 @@
     <ClInclude Include="StudentMgr.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Score.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="StudentMgr.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

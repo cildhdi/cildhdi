@@ -99,6 +99,19 @@ namespace ll
 			}
 		}
 
+		LinkListIterator operator++()
+		{
+			if (valid())
+			{
+				_node = _node->_next;
+				return *this;
+			}
+			else
+			{
+				throw std::out_of_range("invalid iterator");
+			}
+		}
+
 		LinkListIterator operator+(unsigned int d)
 		{
 			LinkListIterator it = *this;
