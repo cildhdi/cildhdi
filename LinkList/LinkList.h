@@ -483,7 +483,7 @@ namespace ll
 				buffer[i]->_next = buffer[i + 1];
 			buffer[_size - 1]->_next = nullptr;
 			_head = buffer[0];
-			delete buffer;
+			delete[] buffer;
 		}
 
 		template<typename Compare>
@@ -501,7 +501,7 @@ namespace ll
 				buffer[i]->_next = buffer[i + 1];
 			buffer[_size - 1]->_next = nullptr;
 			_head = buffer[0];
-			delete buffer;
+			delete[] buffer;
 		}
 
 		void unique() noexcept
@@ -522,7 +522,7 @@ namespace ll
 				buffer[i]->_next = buffer[i + 1];
 			buffer[_size - 1]->_next = nullptr;
 			_head = buffer[0];
-			delete buffer;
+			delete[] buffer;
 		}
 	};
 }
