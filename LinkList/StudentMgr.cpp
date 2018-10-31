@@ -281,7 +281,7 @@ void StudentMgr::SaveToFile()
 	std::ofstream ofs(_file_name, std::ios::out);
 	for (DataType::Iterator it = _data.begin(); it != _data.end(); it++)
 	{
-		ofs << it->_num << it->_name << it->_grade << it->_chinese << it->_math << it->_english;
+		ofs << it->_num << " " << it->_name << " " << it->_grade << " " << it->_chinese << " " << it->_math << " " << it->_english << std::endl;
 	}
 	if (i == count)
 		printf("成功的写入了%d条学生信息。\n", count);
