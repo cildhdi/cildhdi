@@ -15,7 +15,7 @@ addons:
       - g++-4.9
       - gcc-4.9
 before_script:
-  - cd script
+  - cd scripts
   - sudo ./install_gtest.sh
   - cd ..
 script: 
