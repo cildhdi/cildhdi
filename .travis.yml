@@ -14,8 +14,10 @@ addons:
       - cmake
       - g++-4.9
       - gcc-4.9
-install:
-  - sudo ./scripts/install_gtest.sh
+before_script:
+  - cd script
+  - sudo ./install_gtest.sh
+  - cd ..
 script: 
   - mkdir build
   - cd build
