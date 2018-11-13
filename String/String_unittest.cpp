@@ -5,6 +5,7 @@
 #include <random>
 #include <thread>
 #include <chrono>
+#include <functional>
 #include "String.h"
 
 #ifdef _DEBUG

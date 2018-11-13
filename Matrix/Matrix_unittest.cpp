@@ -2,8 +2,10 @@
 #include <iostream>
 #include <string>
 #include <gtest/gtest.h>
-#pragma comment(lib,"gtestd.lib")
 
+#ifdef MSVC
+#pragma comment(lib,"gtestd.lib")
+#endif
 
 //for IntelliSence
 #define Matrix Matrix
@@ -1888,6 +1890,5 @@ TEST(Matrix, OperatorNotEqual)
 int main(int argc, char** argv)
 {
 	testing::InitGoogleTest(&argc, argv);
-	RUN_ALL_TESTS();
-	return 0;
+	return RUN_ALL_TESTS();
 }

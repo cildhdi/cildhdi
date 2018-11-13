@@ -1,0 +1,27 @@
+language: cpp
+sudo: required
+complier:
+- g++
+os:
+- linux
+addons:
+  apt:
+    update: true
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - cmake-data
+      - cmake
+      - g++-4.9
+      - gcc-4.9
+before_script:
+  - cd scripts
+  - ./install_gtest.sh
+  - cd ..
+script: 
+  - mkdir build
+  - cd build
+  - cmake .. -DCMAKE_CXX_FLAGS=-std=c++11
+  - make
+  - cd ../build
+  - ./run_tests.sh
