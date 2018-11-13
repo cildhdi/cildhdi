@@ -264,3 +264,5 @@ __pycache__/
 *.vcxproj
 *.vcxproj.filters
 *.sln
+Cs/
+Console/
