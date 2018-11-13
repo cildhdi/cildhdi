@@ -15,11 +15,11 @@ addons:
       - g++-4.9
       - gcc-4.9
 install:
-  - ./scripts/install_gtest.sh
+  - sudo ./scripts/install_gtest.sh
 script: 
   - mkdir build
   - cd build
   - cmake .. -DCMAKE_CXX_FLAGS=-std=c++11
   - make
   - cd ../build
-  - ./run_tests.sh
+  - sudo ./run_tests.sh
