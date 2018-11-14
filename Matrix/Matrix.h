@@ -24,7 +24,7 @@
 	if(index >= column_size()) \
 		throw std::out_of_range("subscript out of range")
 #define COMBINE_TYPE(T1, op, T2) \
-	decltype(T1() ## op ## T2())
+	decltype(T1()  op  T2())
 
 namespace cildhdi
 {
@@ -83,7 +83,7 @@ namespace cildhdi
 		}
 
 		template<typename _E>
-		Matrix(const std::vector<std::vector<_E>>& vve)throw(std::exception)
+		Matrix(const std::vector<std::vector<_E>>& vve)
 		{
 			ELEMENT_TYPE_CHECK(ElementType);
 			try
@@ -97,7 +97,7 @@ namespace cildhdi
 		}
 
 		template<typename _E>
-		Matrix(const std::vector<_E>& ve)throw(std::exception)
+		Matrix(const std::vector<_E>& ve)
 		{
 			ELEMENT_TYPE_CHECK(ElementType);
 			try
@@ -125,14 +125,14 @@ namespace cildhdi
 			return _data_size;
 		}
 
-		ElementReferenceType at(size_t row, size_t column)throw(std::exception)
+		ElementReferenceType at(size_t row, size_t column)
 		{
 			ROW_INDEX_CHECK(row);
 			COLUMN_INDEX_CHECK(column);
 			return _raw_data[row][column];
 		}
 
-		const ElementType at(size_t row, size_t column)const throw(std::exception)
+		const ElementType at(size_t row, size_t column)const
 		{
 			ROW_INDEX_CHECK(row);
 			COLUMN_INDEX_CHECK(column);
@@ -141,7 +141,7 @@ namespace cildhdi
 		}
 
 		template<typename _E>
-		void data_from(const std::vector<std::vector<_E>>& vve) throw(std::exception)
+		void data_from(const std::vector<std::vector<_E>>& vve)
 		{
 			ELEMENT_TYPE_CHECK(_E);
 			if (_row_size != vve.size() || vve.size() == 0 || vve.at(0).size() != _column_size)
@@ -158,7 +158,7 @@ namespace cildhdi
 		}
 
 		template<typename _E>
-		void data_from(const std::vector<_E>& ve) throw(std::exception)
+		void data_from(const std::vector<_E>& ve)
 		{
 			ELEMENT_TYPE_CHECK(_E);
 			if (ve.size() < _row_size * _column_size)
@@ -175,7 +175,7 @@ namespace cildhdi
 			}
 		}
 
-		void swap_row(size_t i, size_t j)throw(std::exception)
+		void swap_row(size_t i, size_t j)
 		{
 			ROW_INDEX_CHECK(i);
 			ROW_INDEX_CHECK(j);
@@ -188,7 +188,7 @@ namespace cildhdi
 			}
 		}
 
-		void swap_column(size_t i, size_t j)throw(std::exception)
+		void swap_column(size_t i, size_t j)
 		{
 			COLUMN_INDEX_CHECK(i);
 			COLUMN_INDEX_CHECK(j);
@@ -246,7 +246,7 @@ namespace cildhdi
 			return m;
 		}
 	public: //operators
-		ElementType* operator[](size_t row) throw(std::exception)
+		ElementType* operator[](size_t row) 
 		{
 			if (row >= _row_size)
 			{
@@ -322,20 +322,6 @@ namespace cildhdi
 			return res;
 		}
 
-		template<typename _E>
-		auto operator*(_E rhs)const
-		{
-			Matrix<R, C, COMBINE_TYPE(E, *, _E)> m = *this;
-			for (size_t i = 0; i < R; i++)
-			{
-				for (size_t j = 0; j < C; j++)
-				{
-					m.at(i, j) *= rhs;
-				}
-			}
-			return m;
-		}
-
 
 
 		template<size_t _R, size_t _C, typename _E>
@@ -373,12 +359,6 @@ namespace cildhdi
 		}
 
 	};
-
-	template<size_t R, size_t C, typename E, typename _E>
-	auto operator*(_E lhs, const Matrix<R, C, E>& rhs)
-	{
-		return rhs * lhs;
-	}
 
 }//namespace nsMatrix
 
