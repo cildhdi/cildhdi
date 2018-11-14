@@ -15,15 +15,12 @@ addons:
       - g++-4.9
       - gcc-4.9
 before_script:
-  - cd scripts
-  - chmod 777 install_gtest.sh
-  - ./install_gtest.sh
-  - cd ..
+  - chmod 777 scripts/install_gtest.sh
+  - chmod 777 scripts/run_tests.sh
+  - sudo ./scripts/install_gtest.sh
 script: 
   - mkdir build
   - cd build
   - cmake ..
   - make
-  - cd ../build
-  - chmod 777 run_tests.sh
-  - ./run_tests.sh
+  - ./../scripts/run_tests.sh

@@ -492,59 +492,6 @@ TEST(Matrix, OperatorNumberMinusTest)
 	MTEST_END();
 }
 
-TEST(Matrix, OperatorRightNumberMultiplyTest)
-{
-	MTEST_BEGIN();
-
-	int data1[3][3] =
-	{
-		{1,2,3},
-		{4,5,6},
-		{7,8,9}
-	},
-		res[3][3] = {};
-	for (size_t k = 0; k < 100; k++)
-	{
-		for (size_t i = 0; i < 3; i++)
-		{
-			for (size_t j = 0; j < 3; j++)
-			{
-				res[i][j] = data1[i][j] * k;
-			}
-		}
-		Matrix<3, 3, int> mib(data1), ires(res), m = mib * k;
-		EXPECT_TRUE(m == ires) << "k = " << k;
-	}
-
-	MTEST_END();
-}
-
-TEST(Matrix, OperatorLeftNumberMultiplyTest)
-{
-	MTEST_BEGIN();
-
-	int data1[3][3] =
-	{
-		{1,2,3},
-		{4,5,6},
-		{7,8,9}
-	},
-		res[3][3] = {};
-	for (size_t k = 0; k < 100; k++)
-	{
-		for (size_t i = 0; i < 3; i++)
-		{
-			for (size_t j = 0; j < 3; j++)
-			{
-				res[i][j] = data1[i][j] * k;
-			}
-		}
-		Matrix<3, 3, int> mib(data1), ires(res), m = k * mib;
-		EXPECT_TRUE(m == ires) << "k = " << k;
-	}
-
-	MTEST_END();
-}
 
 TEST(Matrix, OperatorNumberDivideTest)
 {
