@@ -1,4 +1,4 @@
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
