@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 git clone https://github.com/google/googletest.git
 cd googletest
 cd googletest
@@ -8,5 +9,5 @@ make
 sudo cp lib/lib* /usr/lib/
 cd ..
 sudo cp -a include/gtest /usr/include/
-cd ..
+cd ../..
 rm -rf googletest
