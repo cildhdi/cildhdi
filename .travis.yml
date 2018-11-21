@@ -12,8 +12,7 @@ addons:
     packages:
       - cmake-data
       - cmake
-      - g++-4.9
-      - gcc-4.9
+      - g++-7
 before_install:
   - chmod 777 scripts/install_gtest.sh
   - chmod 777 scripts/install_vcpkg.sh
