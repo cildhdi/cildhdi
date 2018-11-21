@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(cildhdi VERSION 0.1.0)
-.
+
 add_compile_options(-std=c++11)
 
 find_package(GTest REQUIRED)
