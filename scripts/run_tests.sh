@@ -13,3 +13,6 @@ echo "\nga-de-ry-po-lu-ki-cypher-vol-2 begin"
 
 echo "\nrainfall begin"
 ./build/rainfall/rainfall
+
+echo "\nstring-pyramid begin"
+./build/string-pyramid/string-pyramid
