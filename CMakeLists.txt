@@ -3,8 +3,6 @@ project(cildhdi VERSION 0.1.0)
 
 add_compile_options(-std=c++11)
 
-find_package(snowhouse REQUIRED)
-include_directories(${SNOWHOUSE_INCLUDE_DIR})
 find_package(igloo REQUIRED)
 include_directories(${IGLOO_INCLUDE_DIR})
 
