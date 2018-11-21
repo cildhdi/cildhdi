@@ -1,1 +1,1 @@
-add_executable(main main.cpp)
+add_executable(rainfall main.cpp)
