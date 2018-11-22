@@ -1,0 +1,6 @@
+add_executable(2.1 1.c)
+add_executable(2.2 2.c)
+add_executable(2.3 3.c)
+add_executable(2.4 4.c)
+add_executable(2.5 5.c)
+add_executable(2.6 6.c)
