@@ -42,7 +42,9 @@ or
                                     SWITCH_BRANCH(Error);\
                                     SWITCH_BRANCH(Unkonwn);\
                                 }\
-                                info << std::put_time(std::localtime(&now), "%c");\
+                                char mbstr[40] = {0};\
+                                std::strftime(mbstr, sizeof(mbstr), "%c", std::localtime(&now));\
+                                info << mbstr;\
                                 return info.str(); }() \
                                            << DEBUG_INFO << "]\n\t"
 
