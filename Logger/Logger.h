@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cassert>
+#include <algorithm>
 
 /*
 if you have defined DEBUG before including this head file, the each output will begin with
@@ -24,8 +25,8 @@ or
 #define DEBUG_INFO ""
 #endif // DEBUG
 
-#define SWITCH_BRANCH(level)    \
-    case cl::LogLevel::level:   \
+#define SWITCH_BRANCH(level)                                  \
+    case cl::LogLevel::level:                                 \
         info << std::left << std::setw(11) << #level << ", "; \
         break;
 
@@ -64,10 +65,45 @@ class Logger
 {
   public:
     //return false if output had been added, output must be avaliable until ~Logger() or it's removed.
-    bool add_output(std::ostream &output);
-    bool remove_output(std::ostream &output);
-    void set_loglevel(const LogLevel &loglevel);
-    LogLevel get_loglevel() const;
+    bool add_output(std::ostream &output)
+    {
+        auto found = std::find(_outputs.begin(), _outputs.end(), &output);
+        if (found != _outputs.end())
+        {
+            //output already exist
+            return false;
+        }
+        else
+        {
+            _outputs.push_back(&output);
+            return true;
+        }
+    }
+
+    bool remove_output(std::ostream &output)
+    {
+        auto found = std::find(_outputs.begin(), _outputs.end(), &output);
+        if (found != _outputs.end())
+        {
+            _outputs.erase(found);
+            return true;
+        }
+        else
+        {
+            //output isn't in _outputs
+            return false;
+        }
+    }
+
+    void set_loglevel(const LogLevel &loglevel)
+    {
+        _current_level = loglevel;
+    }
+
+    LogLevel get_loglevel() const
+    {
+        return _current_level;
+    }
 
   public:
     template <typename T>
