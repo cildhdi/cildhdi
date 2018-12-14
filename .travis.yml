@@ -20,8 +20,6 @@ install:
   - sudo ./scripts/install_gtest.sh
   - sudo ./scripts/install_igloo.sh
 before_script:
-  - chmod 777 scripts/run_tests.sh
-  - chmod 777 scripts/build.sh
+  - chmod 777 scripts/build_and_test.sh
 script: 
-  - ./scripts/build.sh
-  - ./scripts/run_tests.sh
+  - ./scripts/build_and_test.sh

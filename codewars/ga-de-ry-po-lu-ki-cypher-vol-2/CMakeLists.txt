@@ -1,1 +1,0 @@
-add_executable("ga-de-ry-po-lu-ki-cypher-vol-2" main.cpp)

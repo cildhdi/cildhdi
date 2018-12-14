@@ -1,2 +1,3 @@
 add_executable(Matrix_unittest Matrix_unittest.cpp)
 target_link_libraries(Matrix_unittest GTest::GTest)
+add_test(Matrix_unittest Matrix_unittest)

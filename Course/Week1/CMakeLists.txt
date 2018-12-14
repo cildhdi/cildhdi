@@ -1,8 +1,0 @@
-add_executable(1.1 1.c)
-add_executable(1.2 2.c)
-add_executable(1.3 3.c)
-add_executable(1.4 4.c)
-add_executable(1.5 5.c)
-add_executable(1.6 6.cpp)
-add_executable(1.other other.cpp)
-target_link_libraries(1.other m)
