@@ -18,10 +18,11 @@ class Teacher : public StorageItem
     virtual void input(std::istream &is)
     {
         is >> _name >> _id;
+        valid_check(is);
     }
     static const char *const file_name()
     {
-        return "/files/teacher.txt";
+        return "_teacher.txt";
     }
 };
 } // namespace ea

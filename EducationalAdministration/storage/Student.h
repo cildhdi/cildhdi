@@ -30,12 +30,14 @@ class Student : public StorageItem
         {
             Course course;
             course.input(is);
-            _courses.push_back(std::move(course));
+            if (course.valid())
+                _courses.push_back(std::move(course));
         }
+        valid_check(is);
     }
     static const char *const file_name()
     {
-        return "/files/student.txt";
+        return "_student.txt";
     }
 };
 } // namespace ea

@@ -19,10 +19,11 @@ class Course : public StorageItem
     virtual void input(std::istream &is)
     {
         is >> _id >> _name >> _credit;
+        valid_check(is);
     }
     static const char *const file_name()
     {
-        return "/files/course.txt";
+        return "_course.txt";
     }
 };
 } // namespace ea
