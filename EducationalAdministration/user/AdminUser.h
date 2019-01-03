@@ -10,16 +10,22 @@
 namespace ea
 {
 
-class AdminUser :
-    virtual public Readable<Student>, virtual public Modifiable<Student>,
-    virtual public Readable<Course>, virtual public Modifiable<Course>,
-    virtual public Readable<Teacher>, virtual public Modifiable<Teacher>
+class AdminUser
+    : virtual public Readable<Student>,
+      virtual public Modifiable<Student>,
+      virtual public Readable<Course>,
+      virtual public Modifiable<Course>,
+      virtual public Readable<Teacher>,
+      virtual public Modifiable<Teacher>
 {
-public:
-    AdminUser(std::vector<Student>& students, std::vector<Course>& courses, std::vector<Teacher>& teachers) :
-        Readable<Student>(students), Modifiable<Student>(students),
-        Readable<Course>(courses), Modifiable<Course>(courses),
-        Readable<Teacher>(teachers), Modifiable<Teacher>(teachers)
+  public:
+    AdminUser(std::vector<Student> &students, std::vector<Course> &courses, std::vector<Teacher> &teachers)
+        : Readable<Student>(students),
+          Modifiable<Student>(students),
+          Readable<Course>(courses),
+          Modifiable<Course>(courses),
+          Readable<Teacher>(teachers),
+          Modifiable<Teacher>(teachers)
     {
         Privilege::set_owner("π‹¿Ì‘±");
     }

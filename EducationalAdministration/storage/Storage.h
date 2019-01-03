@@ -9,10 +9,10 @@ namespace ea
 template <typename Item>
 class Storage
 {
-public:
+  public:
     std::vector<Item> _items;
 
-public:
+  public:
     Storage()
     {
         std::ifstream ifs(Item::file_name());

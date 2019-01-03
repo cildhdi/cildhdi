@@ -11,11 +11,11 @@ using PrivilegeInfo = std::pair<std::string, std::function<void(void)>>;
 
 class Privilege
 {
-private:
+  private:
     std::vector<PrivilegeInfo> _privileges;
     std::string _owner;
 
-public:
+  public:
     virtual void set_owner(const std::string &owner)
     {
         _owner = owner;

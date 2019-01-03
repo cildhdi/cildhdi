@@ -14,26 +14,26 @@ namespace ea
 
 class App
 {
-private:
+  private:
     Storage<Student> _students;
     Storage<Teacher> _teachers;
     Storage<Course> _courses;
 
-public:
+  public:
     int run()
     {
         while (true)
         {
             std::cout << "\n\n-------------------------------------------------\n"
-                "教务管理系统\n请输入身份或操作前的字母，或输入其它字符直接退出：\n"
-                "a.学生\nb.教师\nc.管理员\nd.保存此次操作并退出\n";
+                         "教务管理系统\n请输入身份或操作前的字母，或输入其它字符直接退出：\n"
+                         "a.学生\nb.教师\nc.管理员\nd.保存此次操作并退出\n";
 
             char ch;
             std::cin >> ch;
             if (!(ch == 'a' || ch == 'b' || ch == 'c' || ch == 'd'))
                 return 0;
 
-            Privilege* user = nullptr;
+            Privilege *user = nullptr;
             switch (ch)
             {
             case 'a':
@@ -41,8 +41,7 @@ public:
                 std::cout << "\n请输入学号:\n";
                 std::string id;
                 std::cin >> id;
-                auto it = std::find_if(_students._items.begin(), _students._items.end(), [&](StorageItem& student)
-                {
+                auto it = std::find_if(_students._items.begin(), _students._items.end(), [&](StorageItem &student) {
                     return student == id;
                 });
                 if (it == _students._items.end())
@@ -61,8 +60,7 @@ public:
                 std::cout << "\n请输入教师编号:\n";
                 std::string id;
                 std::cin >> id;
-                auto it = std::find_if(_teachers._items.begin(), _teachers._items.end(), [&](StorageItem& teacher)
-                {
+                auto it = std::find_if(_teachers._items.begin(), _teachers._items.end(), [&](StorageItem &teacher) {
                     return teacher == id;
                 });
                 if (it == _teachers._items.end())
@@ -94,7 +92,8 @@ public:
             do
             {
                 std::cout << "\n-------------------------\n"
-                    "您当前以" << user->owner() << "的身份登录，您具有以下权限：\n";
+                             "您当前以"
+                          << user->owner() << "的身份登录，您具有以下权限：\n";
                 user->show_privilege();
                 std::cout << "请输入要执行的权限前的字母，或输入其它字符直接回到主菜单：\n";
                 std::cin >> ch;

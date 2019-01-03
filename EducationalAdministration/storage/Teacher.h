@@ -6,22 +6,20 @@ namespace ea
 {
 class Teacher : public StorageItem
 {
-private:
+  private:
     std::string _name;
     std::string _major;
     std::string _job;
 
-public:
+  public:
     virtual void show_head(std::ostream &os)
     {
-        os << std::setw(10) << "姓名" << std::setw(10) << "教师编号" <<
-            std::setw(15) << "专业" << std::setw(15) << "职称" << std::endl;
+        os << std::setw(10) << "姓名" << std::setw(10) << "教师编号" << std::setw(15) << "专业" << std::setw(15) << "职称" << std::endl;
     }
 
     virtual void output(std::ostream &os)
     {
-        os << std::setw(10) << _name << std::setw(10) << _id <<
-            std::setw(15) << _major << std::setw(15) << _job << std::endl;
+        os << std::setw(10) << _name << std::setw(10) << _id << std::setw(15) << _major << std::setw(15) << _job << std::endl;
     }
 
     virtual void input(std::istream &is)
