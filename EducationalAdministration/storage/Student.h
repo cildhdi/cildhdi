@@ -10,14 +10,17 @@ class Student : public StorageItem
 {
   private:
     std::string _name;
-    std::string _id;
     std::string _major;
     std::vector<Course> _courses;
 
   public:
+    virtual void show_head(std::ostream &os)
+    {
+        os << std::setw(10) << "姓名" << std::setw(10) << "学号" << std::setw(15) << "专业" << std::endl;
+    }
     virtual void output(std::ostream &os)
     {
-        os << _name << ' ' << _id << ' ' << _major << ' ' << _courses.size() << std::endl;
+        os << std::setw(10) << _name << std::setw(10) << _id << std::setw(15) << _major << ' ' << _courses.size() << std::endl;
         for (auto &course : _courses)
             course.output(os);
     }
@@ -35,9 +38,22 @@ class Student : public StorageItem
         }
         valid_check(is);
     }
+
+    virtual void modify()
+    {
+        util::modify("姓名", _name);
+        util::modify("学号", _id);
+        util::modify("专业", _major);
+    }
+
     static const char *const file_name()
     {
         return "_student.txt";
+    }
+
+    static const char *const name()
+    {
+        return "学生";
     }
 };
 } // namespace ea

@@ -10,14 +10,14 @@ namespace util
 template <typename T>
 void modify(const std::string &descrption, T &data)
 {
-    std::cout << "è¯·è¾“å…¥æ–°çš„" << descrption << ":\n";
+    std::cout << "ÇëÊäÈë" << descrption << ":\n";
     while (!(std::cin >> data))
     {
         std::cin.clear();
         std::cin.sync();
-        std::cout << "è¯»å…¥" << descrption << "å¤±è´¥ï¼Œè¯·é‡æ–°è¾“å…¥ï¼š\n";
+        std::cout << "¶ÁÈë" << descrption << "Ê§°Ü£¬ÇëÖØÐÂÊäÈë:\n";
     }
-    std::cout << "è¯»å…¥æˆåŠŸ";
+    std::cout << "¶ÁÈë³É¹¦!\n\n";
 }
 } // namespace util
 
