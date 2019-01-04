@@ -24,7 +24,7 @@ class TeacherUser
           Readable<Course>(courses),
           Modifiable<Course>(courses)
     {
-        Privilege::set_owner("½ÌÊ¦");
+        Privilege::set_owner("æ•™å¸ˆ");
     }
 };
 

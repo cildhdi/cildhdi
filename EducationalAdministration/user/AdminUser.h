@@ -27,7 +27,7 @@ class AdminUser
           Readable<Teacher>(teachers),
           Modifiable<Teacher>(teachers)
     {
-        Privilege::set_owner("¹ÜÀíÔ±");
+        Privilege::set_owner("ç®¡ç†å‘˜");
     }
 };
 

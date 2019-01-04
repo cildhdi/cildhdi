@@ -14,7 +14,7 @@ class SelfReadable : virtual public Privilege
   public:
     SelfReadable(Item &item) : _item(item)
     {
-        register_privilege({std::string("查看本人信息"), [&]() {
+        register_privilege({std::string("鏌ョ湅鏈汉淇℃伅"), [&]() {
                                 _item.show_head(std::cout);
                                 _item.output(std::cout);
                             }});
