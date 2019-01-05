@@ -33,6 +33,7 @@ class StudentUser
                                 }
                                 else
                                 {
+                                    student._courses.push_back(*it);
                                     std::cout << "已选入以下课程：\n";
                                     it->show_head(std::cout);
                                     it->output(std::cout);

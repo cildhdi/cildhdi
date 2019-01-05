@@ -6,13 +6,16 @@
 
 namespace ea
 {
+
+class StudentUser;
+
 class Student : public StorageItem
 {
   private:
     std::string _name;
     std::string _major;
     std::vector<Course> _courses;
-
+    friend class StudentUser;
   public:
     virtual void show_head(std::ostream &os)
     {
