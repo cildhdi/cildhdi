@@ -19,9 +19,9 @@ class StudentUser
         : SelfReadable<Student>(student),
           Readable<Course>(courses)
     {
-        Privilege::set_owner("Ñ§Éú");
-        register_privilege({std::string("Ñ¡Ôñ¿Î³Ì"), [&]() {
-                                std::cout << "\nÇëÊäÈë¿Î³Ì±àºÅ:\n";
+        Privilege::set_owner("å­¦ç”Ÿ");
+        register_privilege({std::string("é€‰æ‹©è¯¾ç¨‹"), [&]() {
+                                std::cout << "\nè¯·è¾“å…¥è¯¾ç¨‹ç¼–å·:\n";
                                 std::string id;
                                 std::cin >> id;
                                 auto it = std::find_if(courses.begin(), courses.end(), [&](StorageItem &course) {
@@ -29,12 +29,12 @@ class StudentUser
                                 });
                                 if (it == courses.end())
                                 {
-                                    std::cout << "Î´ÕÒµ½¸Ã¿Î³ÌĞÅÏ¢\n";
+                                    std::cout << "æœªæ‰¾åˆ°è¯¥è¯¾ç¨‹ä¿¡æ¯\n";
                                 }
                                 else
                                 {
                                     student._courses.push_back(*it);
-                                    std::cout << "ÒÑÑ¡ÈëÒÔÏÂ¿Î³Ì£º\n";
+                                    std::cout << "å·²é€‰å…¥ä»¥ä¸‹è¯¾ç¨‹ï¼š\n";
                                     it->show_head(std::cout);
                                     it->output(std::cout);
                                 }

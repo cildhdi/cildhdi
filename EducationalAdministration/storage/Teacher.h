@@ -14,7 +14,7 @@ class Teacher : public StorageItem
   public:
     virtual void show_head(std::ostream &os)
     {
-        os << std::setw(10) << "姓名" << std::setw(10) << "教师编号" << std::setw(15) << "专业" << std::setw(15) << "职称" << std::endl;
+        os << std::setw(10) << "濮撳悕" << std::setw(10) << "鏁欏笀缂栧彿" << std::setw(15) << "涓撲笟" << std::setw(15) << "鑱岀О" << std::endl;
     }
 
     virtual void output(std::ostream &os)
@@ -30,10 +30,10 @@ class Teacher : public StorageItem
 
     virtual void modify()
     {
-        util::modify("教师姓名", _name);
-        util::modify("教师编号", _id);
-        util::modify("专业", _major);
-        util::modify("职称", _job);
+        util::modify("鏁欏笀濮撳悕", _name);
+        util::modify("鏁欏笀缂栧彿", _id);
+        util::modify("涓撲笟", _major);
+        util::modify("鑱岀О", _job);
     }
 
     static const char *const file_name()
@@ -43,7 +43,7 @@ class Teacher : public StorageItem
 
     static const char *const name()
     {
-        return "老师";
+        return "鑰佸笀";
     }
 };
 } // namespace ea

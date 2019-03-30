@@ -13,7 +13,7 @@ class Course : public StorageItem
   public:
     virtual void show_head(std::ostream &os)
     {
-        os << std::setw(15) << "¿Î³Ì±àºÅ" << std::setw(15) << "¿Î³ÌÃû" << std::setw(5) << "Ñ§·Ö" << std::endl;
+        os << std::setw(15) << "è¯¾ç¨‹ç¼–å·" << std::setw(15) << "è¯¾ç¨‹å" << std::setw(5) << "å­¦åˆ†" << std::endl;
     }
 
     virtual void output(std::ostream &os)
@@ -29,9 +29,9 @@ class Course : public StorageItem
 
     virtual void modify()
     {
-        util::modify("±àºÅ", _id);
-        util::modify("¿Î³ÌÃû³Æ", _name);
-        util::modify("Ñ§·Ö", _credit);
+        util::modify("ç¼–å·", _id);
+        util::modify("è¯¾ç¨‹åç§°", _name);
+        util::modify("å­¦åˆ†", _credit);
     }
 
     static const char *const file_name()
@@ -41,7 +41,7 @@ class Course : public StorageItem
 
     static const char *const name()
     {
-        return "¿Î³Ì";
+        return "è¯¾ç¨‹";
     }
 };
 } // namespace ea
