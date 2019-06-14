@@ -30,7 +30,6 @@ private:
     KEY_WD(std::vector<Change>, _changes);
 
 private:
-    void AddChange(Change &&change);
     void CalculateInterest();
 
 public:

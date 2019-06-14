@@ -20,7 +20,7 @@ TEST_CASE("Change")
             {
                 "time": 123,
                 "change": 10.0,
-                "detail": "利息",
+                "detail": "interest",
                 "balance": 56.8
             }
         )"_json;
@@ -29,7 +29,7 @@ TEST_CASE("Change")
 
         CHECK_EQ(change.time, 123);
         CHECK_EQ(change.change, 10.0);
-        CHECK_EQ(change.detail, "利息");
+        CHECK_EQ(change.detail, "interest");
         CHECK_EQ(change.balance, 56.8);
     }
 
@@ -38,7 +38,7 @@ TEST_CASE("Change")
         ba::Change change;
         change.time = 123;
         change.change = 10.0;
-        change.detail = "利息";
+        change.detail = "interest";
         change.balance = 56.8;
         auto json = change.ToJson();
 
@@ -49,7 +49,7 @@ TEST_CASE("Change")
         CHECK_EQ(json[change.change_key], 10.0);
 
         REQUIRE(json.contains(change.detail_key));
-        CHECK_EQ(json[change.detail_key], "利息");
+        CHECK_EQ(json[change.detail_key], "interest");
 
         REQUIRE(json.contains(change.balance_key));
         CHECK_EQ(json[change.balance_key], 56.8);

@@ -2,10 +2,6 @@
 
 namespace ba
 {
-void Account::AddChange(Change &&change)
-{
-    this->_changes.push_back(std::move(change));
-}
 
 void Account::CalculateInterest()
 {
@@ -19,7 +15,7 @@ void Account::CalculateInterest()
     change.change = (_account_type == AccountType::kCredit && latest_change.balance > 0.0)
                         ? 0.0
                         : latest_change.balance * days * _rate;
-    change.detail = "利息";
+    change.detail = "interest";
     change.balance = latest_change.balance + change.change;
     _changes.push_back(change);
 }
@@ -52,10 +48,7 @@ double Account::GetBalance() const
 Result Account::Deposit(double money, const std::string &detail)
 {
     if (money <= 0)
-        return Result{
-            success : false,
-            detail : "存钱数必须为正数"
-        };
+        return Result{false, "Must be a positive number"};
     CalculateInterest();
     Change change;
     change.time = this->time();
@@ -68,6 +61,8 @@ Result Account::Deposit(double money, const std::string &detail)
 
 Result Account::Withdraw(double money, const std::string &detail)
 {
+    if (money <= 0)
+        return Result{false, "Must be a positive number"};
     CalculateInterest();
     double balance = GetBalance();
     Change change;
@@ -75,22 +70,17 @@ Result Account::Withdraw(double money, const std::string &detail)
     if (_account_type == AccountType::kDebit)
     {
         if (balance < money)
-            return Result{
-                success : false,
-                detail : "余额不足"
-            };
+            return Result{false, "Lack of balance"};
     }
     else
     {
         if (balance + _limit < money)
-            return Result{
-                success : false,
-                detail : "额度不足"
-            };
+            return Result{false, "Lack of credit"};
     }
     change.change = -money;
     change.detail = detail;
     change.balance = balance + change.change;
+    _changes.push_back(change);
     return Result();
 }
 } // namespace ba
