@@ -83,4 +83,46 @@ Result Account::Withdraw(double money, const std::string &detail)
     _changes.push_back(change);
     return Result();
 }
+
+nlohmann::json Account::ToJson() const
+{
+    std::vector<nlohmann::json> changes;
+    changes.reserve(_changes.size());
+    std::for_each(_changes.begin(), _changes.end(), [&](const Change &change) {
+        changes.push_back(change.ToJson());
+    });
+    return {
+        {_user_name_key, _user_name},
+        {_account_type_key, static_cast<int>(_account_type)},
+        {_rate_key, _rate},
+        {_limit_key, _limit},
+        {_changes_key, changes}};
+}
+void Account::FromJson(nlohmann::json json)
+{
+    if (json.contains(_user_name_key))
+        _user_name = json[_user_name_key];
+    if (json.contains(_account_type_key))
+        _account_type = static_cast<AccountType>(
+            static_cast<int>(json[_account_type_key]));
+    if (json.contains(_rate_key))
+        _rate = json[_rate_key];
+    if (json.contains(_limit_key))
+        _limit = json[_limit_key];
+    if (json.contains(_changes_key))
+    {
+        auto changes = json[_changes_key];
+        _changes.clear();
+        for (auto &change_json : changes)
+        {
+            Change change;
+            change.FromJson(change_json);
+            _changes.push_back(change);
+        }
+        std::sort(_changes.begin(), _changes.end(), [](Change &l, Change &r) {
+            return l.time < r.time;
+        });
+    }
+}
+
 } // namespace ba

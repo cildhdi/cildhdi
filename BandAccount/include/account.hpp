@@ -4,6 +4,8 @@
 #include <vector>
 #include <functional>
 #include <ctime>
+#include <json/json.hpp>
+#include <algorithm>
 
 #include <result.hpp>
 #include <storage_object.hpp>
@@ -36,6 +38,9 @@ public:
     std::function<time_t()> time = []() -> time_t {
         return std::time(nullptr);
     };
+
+    nlohmann::json ToJson() const;
+    void FromJson(nlohmann::json json);
 
 public:
     Account(const std::string &user_name = "", AccountType account_type = AccountType::kDebit,

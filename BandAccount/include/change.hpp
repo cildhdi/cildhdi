@@ -12,7 +12,7 @@ struct Change
     KEY(std::string, detail, "");
     KEY(double, balance, 0.0);
 
-    nlohmann::json ToJson()
+    nlohmann::json ToJson() const
     {
         return {
             {time_key, time},

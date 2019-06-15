@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 #include <json/json.hpp>
+#include <iostream>
 
 #include <change.hpp>
 
@@ -42,6 +43,7 @@ TEST_CASE("Change")
         change.balance = 56.8;
         auto json = change.ToJson();
 
+        std::cout << json.dump(4) << std::endl;
         REQUIRE(json.contains(change.time_key));
         CHECK_EQ(json[change.time_key], 123);
 
