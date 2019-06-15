@@ -12,12 +12,15 @@ class App
 private:
     KEY_WD(std::vector<Account>, _accounts);
 
-private:
+    std::string _file;
+
+public:
     nlohmann::json ToJson() const;
     void FromJson(nlohmann::json json);
 
 public:
-    App();
+    App(const std::string &file);
+    std::string GetFileName() const;
     void AddAccount(const Account &account);
 };
 } // namespace ba

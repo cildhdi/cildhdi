@@ -75,6 +75,8 @@ TEST_CASE("Account")
             CHECK_EQ(account.GetLimit(), _account.GetLimit());
             CHECK_EQ(account.GetRate(), _account.GetRate());
             CHECK_EQ(account.GetUserName(), _account.GetUserName());
+
+            account.ShowChanges();
         }
 
         SUBCASE("Withdraw")
@@ -111,6 +113,7 @@ TEST_CASE("Account")
             CHECK_EQ(account.GetLimit(), _account.GetLimit());
             CHECK_EQ(account.GetRate(), _account.GetRate());
             CHECK_EQ(account.GetUserName(), _account.GetUserName());
+            account.ShowChanges();
         }
     }
 
@@ -161,6 +164,8 @@ TEST_CASE("Account")
             CHECK_EQ(account.GetLimit(), _account.GetLimit());
             CHECK_EQ(account.GetRate(), _account.GetRate());
             CHECK_EQ(account.GetUserName(), _account.GetUserName());
+
+            account.ShowChanges();
         }
 
         SUBCASE("Withdraw")
@@ -204,6 +209,9 @@ TEST_CASE("Account")
             CHECK_EQ(account.GetLimit(), _account.GetLimit());
             CHECK_EQ(account.GetRate(), _account.GetRate());
             CHECK_EQ(account.GetUserName(), _account.GetUserName());
+
+            account.ShowChanges();
+
         }
     }
 }

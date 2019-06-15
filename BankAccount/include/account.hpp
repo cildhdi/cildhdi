@@ -6,6 +6,8 @@
 #include <ctime>
 #include <json/json.hpp>
 #include <algorithm>
+#include <iostream>
+#include <iomanip>
 
 #include <result.hpp>
 #include <storage_object.hpp>
@@ -56,6 +58,8 @@ public:
     double GetLimit() const;
     Result Deposit(double money, const std::string &detail);
     Result Withdraw(double money, const std::string &detail);
+
+    void ShowChanges() const;
 };
 
 } // namespace ba

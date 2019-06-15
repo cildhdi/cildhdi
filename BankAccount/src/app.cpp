@@ -2,8 +2,16 @@
 
 namespace ba
 {
-App::App()
+App::App(const std::string &file)
+    : _file(file)
 {
+    if (_file.empty())
+        return;
+}
+
+std::string App::GetFileName() const
+{
+    return _file;
 }
 
 void App::AddAccount(const Account &account)

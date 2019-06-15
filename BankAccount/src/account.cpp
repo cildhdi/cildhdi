@@ -125,4 +125,19 @@ void Account::FromJson(nlohmann::json json)
     }
 }
 
+void Account::ShowChanges() const
+{
+    std::cout << std::setw(30) << "Time" << std::setw(10) << "Change"
+              << std::setw(10) << "Balance"
+              << std::setw(30) << "Detail" << std::endl;
+    std::cout << "================================================================================" << std::endl;
+    for (auto it = _changes.rbegin(); it != _changes.rend(); ++it)
+    {
+        std::string time_str = std::asctime(std::localtime(&it->time));
+        std::cout << std::setw(30) << time_str.substr(0, time_str.size() - 1)
+                  << std::setw(10) << it->change << std::setw(10)
+                  << it->balance << std::setw(30) << it->detail << std::endl;
+    }
+}
+
 } // namespace ba
