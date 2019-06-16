@@ -7,7 +7,7 @@ TEST_CASE("App")
 {
     SUBCASE("Constructor")
     {
-        std::string filename = "ba.json";
+        std::string filename = "";
         ba::App app(filename);
 
         CHECK_EQ(app.GetFileName(), filename);
