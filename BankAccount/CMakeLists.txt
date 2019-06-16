@@ -7,4 +7,5 @@ include_directories(include lib)
 file(GLOB_RECURSE SRC src/*.cpp)
 file(GLOB_RECURSE TEST_SRC tests/*.cpp)
 
+add_executable(BankAccount main.cpp ${SRC})
 add_executable(BankAccountTest ${TEST_SRC} ${SRC})

@@ -4,6 +4,8 @@
 #include <account.hpp>
 #include <result.hpp>
 #include <storage_object.hpp>
+#include <options.hpp>
+#include <tools.hpp>
 
 namespace ba
 {
@@ -13,6 +15,10 @@ private:
     KEY_WD(std::vector<Account>, _accounts);
 
     std::string _file;
+    Options _options;
+
+private:
+    void UpdateOptions();
 
 public:
     nlohmann::json ToJson() const;
@@ -22,5 +28,6 @@ public:
     App(const std::string &file);
     std::string GetFileName() const;
     void AddAccount(const Account &account);
+    int Run();
 };
 } // namespace ba
