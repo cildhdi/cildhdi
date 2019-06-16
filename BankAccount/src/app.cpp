@@ -3,46 +3,70 @@
 namespace ba
 {
 
-Options AccountOptions(Account &account, bool &run)
+Options App::AccountOptions(Account &account, bool &run)
 {
     Options options;
     options.AddOption(
-        {"å­˜æ¬¾",
+        {"ÕË»§ĞÅÏ¢", [&]() {
+             account.ShowInfo();
+         }});
+    options.AddOption(
+        {"´æ¿î",
          [&]() {
-             auto r = account.Deposit(input<double>("é‡‘é¢"), "å­˜æ¬¾");
+             auto r = account.Deposit(input<double>("½ğ¶î", [](double m) { return m > 0; }), "deposit");
              if (r.success)
-                 std::cout << "æˆåŠŸ" << std::endl;
+             {
+                 std::cout << "³É¹¦" << std::endl;
+                 Save();
+             }
              else
-                 std::cout << "å¤±è´¥:" << r.detail << std::endl;
+                 std::cout << "Ê§°Ü:" << r.detail << std::endl;
          }});
 
     options.AddOption(
-        {"å–æ¬¾",
+        {"È¡¿î",
          [&]() {
-             auto r = account.Deposit(input<double>("é‡‘é¢"), "å–æ¬¾");
+             auto r = account.Withdraw(input<double>("½ğ¶î", [](double m) { return m > 0; }), "withdraw");
              if (r.success)
-                 std::cout << "æˆåŠŸ" << std::endl;
+             {
+                 std::cout << "³É¹¦" << std::endl;
+                 Save();
+             }
              else
-                 std::cout << "å¤±è´¥:" << r.detail << std::endl;
+                 std::cout << "Ê§°Ü:" << r.detail << std::endl;
          }});
 
     options.AddOption(
-        {"æŸ¥çœ‹å­˜å–è®°å½•",
+        {"²é¿´´æÈ¡¼ÇÂ¼",
          [&]() {
              account.ShowChanges();
          }});
     options.AddOption(
-        {"é€€å‡ºè´¦æˆ·",
+        {"ÍË³öÕË»§",
          [&]() {
              run = false;
          }});
+    return options;
 }
 
 App::App(const std::string &file)
     : _file(file)
 {
-    if (_file.empty())
-        return;
+    if (!_file.empty())
+    {
+        std::fstream fs;
+        fs.open(_file);
+        if (!fs.is_open())
+        {
+            fs.clear();
+            fs.open(_file, std::ios::in);
+        }
+        nlohmann::json json;
+        fs >> json;
+        FromJson(json);
+        fs.close();
+    }
+    UpdateOptions();
 }
 
 void App::UpdateOptions()
@@ -51,32 +75,27 @@ void App::UpdateOptions()
     for (auto &account : _accounts)
     {
         _options.AddOption(
-            {"è¿›å…¥è´¦æˆ·ï¼š" + account.GetUserName(),
+            {"½øÈëÕË»§£º" + account.GetUserName(),
              [&]() {
-                 std::cout << "è´¦æˆ·åï¼š" << account.GetUserName() << std::endl
-                           << "è´¦æˆ·ç±»å‹ï¼š" << (account.GetAccountType() == kDebit ? "å‚¨è“„è´¦æˆ·" : "ä¿¡ç”¨è´¦æˆ·") << std::endl
-                           << "è´¦æˆ·ä½™é¢ï¼š" << account.GetBalance() << std::endl
-                           << "åˆ©ç‡ï¼š" << account.GetRate() << std::endl;
-                 if (account.GetAccountType() == kCredit)
-                     std::cout << "ä¿¡ç”¨é¢åº¦" << std::endl;
                  bool run = true;
+                 account.ShowInfo();
                  AccountOptions(account, run).Run(run);
              }});
     }
     _options.AddOption(
-        {"æ·»åŠ è´¦æˆ·",
+        {"Ìí¼ÓÕË»§",
          [&]() {
-             std::string username = input<std::string>("è´¦æˆ·å");
-             double rate = input<double>("åˆ©ç‡", [](double r) {
+             std::string username = input<std::string>("ÕË»§Ãû£¨²»ÔÊĞíÖĞÎÄ£©");
+             double rate = input<double>("ÀûÂÊ", [](double r) {
                  return r >= 0 && r <= 1;
              });
              AccountType type = static_cast<AccountType>(
-                 input<int>("è´¦æˆ·ç±»å‹(0ä¸ºå‚¨è“„è´¦æˆ·ï¼Œ1ä¸ºä¿¡ç”¨è´¦æˆ·)", [](int t) {
+                 input<int>("ÕË»§ÀàĞÍ(0Îª´¢ĞîÕË»§£¬1ÎªĞÅÓÃÕË»§)", [](int t) {
                      return t == 0 || t == 1;
                  }));
              double limit = 0;
              if (type == kCredit)
-                 limit = input<double>("ä¿¡ç”¨é¢åº¦", [](double l) {
+                 limit = input<double>("ĞÅÓÃ¶î¶È", [](double l) {
                      return l >= 0;
                  });
              AddAccount(Account(username, type, rate, limit));
@@ -92,12 +111,29 @@ std::string App::GetFileName() const
 void App::AddAccount(const Account &account)
 {
     _accounts.push_back(account);
+    Save();
 }
 
 int App::Run()
 {
     bool run = true;
     return _options.Run(run);
+}
+
+void App::Save() const
+{
+    if (!_file.empty())
+    {
+        std::fstream fs;
+        fs.open(_file);
+        if (!fs.is_open())
+        {
+            fs.clear();
+            fs.open(_file, std::ios::out);
+        }
+        fs << ToJson().dump(4);
+        fs.close();
+    }
 }
 
 nlohmann::json App::ToJson() const

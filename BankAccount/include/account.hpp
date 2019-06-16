@@ -60,6 +60,7 @@ public:
     Result Withdraw(double money, const std::string &detail);
 
     void ShowChanges() const;
+    void ShowInfo() const;
 };
 
 } // namespace ba

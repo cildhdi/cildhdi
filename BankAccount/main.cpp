@@ -2,5 +2,5 @@
 
 int main()
 {
-    return ba::App("").Run();
+    return ba::App("ba.json").Run();
 }

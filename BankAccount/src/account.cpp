@@ -48,7 +48,7 @@ double Account::GetBalance() const
 Result Account::Deposit(double money, const std::string &detail)
 {
     if (money <= 0)
-        return Result{false, "Must be a positive number"};
+        return Result{false, "必须为正数"};
     CalculateInterest();
     Change change;
     change.time = this->time();
@@ -62,7 +62,7 @@ Result Account::Deposit(double money, const std::string &detail)
 Result Account::Withdraw(double money, const std::string &detail)
 {
     if (money <= 0)
-        return Result{false, "Must be a positive number"};
+        return Result{false, "必须为正数"};
     CalculateInterest();
     double balance = GetBalance();
     Change change;
@@ -70,12 +70,12 @@ Result Account::Withdraw(double money, const std::string &detail)
     if (_account_type == AccountType::kDebit)
     {
         if (balance < money)
-            return Result{false, "Lack of balance"};
+            return Result{false, "余额不足"};
     }
     else
     {
         if (balance + _limit < money)
-            return Result{false, "Lack of credit"};
+            return Result{false, "额度不足"};
     }
     change.change = -money;
     change.detail = detail;
@@ -127,17 +127,27 @@ void Account::FromJson(nlohmann::json json)
 
 void Account::ShowChanges() const
 {
-    std::cout << std::setw(30) << "Time" << std::setw(10) << "Change"
-              << std::setw(10) << "Balance"
-              << std::setw(30) << "Detail" << std::endl;
+    std::cout << std::setw(30) << "时间" << std::setw(20) << "金额变化"
+              << std::setw(10) << "余额"
+              << std::setw(20) << "详细信息" << std::endl;
     std::cout << "================================================================================" << std::endl;
     for (auto it = _changes.rbegin(); it != _changes.rend(); ++it)
     {
         std::string time_str = std::asctime(std::localtime(&it->time));
         std::cout << std::setw(30) << time_str.substr(0, time_str.size() - 1)
-                  << std::setw(10) << it->change << std::setw(10)
-                  << it->balance << std::setw(30) << it->detail << std::endl;
+                  << std::setw(20) << (it->change > 0 ? ("+" + std::to_string(it->change)) : std::to_string(it->change)) << std::setw(10)
+                  << it->balance << std::setw(20) << it->detail << std::endl;
     }
+}
+
+void Account::ShowInfo() const
+{
+    std::cout << "账户名：" << GetUserName() << std::endl
+              << "账户类型：" << (GetAccountType() == kDebit ? "储蓄账户" : "信用账户") << std::endl
+              << "账户余额：" << GetBalance() << std::endl
+              << "利率：" << GetRate() << std::endl;
+    if (GetAccountType() == kCredit)
+        std::cout << "信用额度" << GetLimit() << std::endl;
 }
 
 } // namespace ba

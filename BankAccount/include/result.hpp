@@ -8,7 +8,7 @@ namespace ba
 struct Result
 {
     bool success = true;
-    const char *detail = "success";
+    const char *detail = "³É¹¦";
 };
 
 } // namespace ba

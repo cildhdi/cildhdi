@@ -12,14 +12,13 @@ T input(const std::string &description, std::function<bool(T)> validate = [](T t
 })
 {
     T data;
-    std::cout << "è¯·è¾“å…¥" << description << ":\n";
+    std::cout << "ÇëÊäÈë" << description << ":\n";
     while (!(std::cin >> data) || !validate(data))
     {
         std::cin.clear();
         std::cin.sync();
-        std::cout << "è¯»å…¥" << description << "å¤±è´¥æˆ–ä¸ç¬¦åˆè¦æ±‚ï¼Œè¯·é‡æ–°è¾“å…¥:\n";
+        std::cout << "¶ÁÈë" << description << "Ê§°Ü»ò²»·ûºÏÒªÇó£¬ÇëÖØĞÂÊäÈë:\n";
     }
-    std::cout << "è¯»å…¥æˆåŠŸ!\n\n";
     return data;
 }
 

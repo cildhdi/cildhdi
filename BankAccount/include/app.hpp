@@ -1,5 +1,6 @@
 #include <vector>
 #include <json/json.hpp>
+#include <fstream>
 
 #include <account.hpp>
 #include <result.hpp>
@@ -28,6 +29,8 @@ public:
     App(const std::string &file);
     std::string GetFileName() const;
     void AddAccount(const Account &account);
+    Options AccountOptions(Account &account, bool &run);
     int Run();
+    void Save() const;
 };
 } // namespace ba

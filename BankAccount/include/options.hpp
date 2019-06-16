@@ -38,10 +38,12 @@ public:
 
     int Run(bool &run)
     {
-        std::cout << "鍙敤閫夐」锛歕n";
-        ShowOptions();
         while (run)
-            ChooseOption(input<size_t>("搴忓彿"));
+        {
+            std::cout << "\n\n=============================================\n可用选项：\n";
+            ShowOptions();
+            ChooseOption(input<size_t>("序号"));
+        }
         return 0;
     }
 
