@@ -1,3 +1,4 @@
+// use c++ 17
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -290,7 +291,7 @@ class library {
           {"清除库存", [this]() { delete_book(); }},
           {"图书借阅", [this]() { borrow(); }},
           {"图书归还", [this]() { give_back(); }},
-      };
+          {"退出", []() { exit(0); }}};
 
       std::cout << "系统选项：" << std::endl;
       constexpr char index = 'a';
@@ -309,6 +310,7 @@ class library {
         std::cout << std::endl;
       }
     }
+    return 0;
   }
 };
 
